@@ -14,7 +14,7 @@ class Config:
     
     if all([DB_USER, DB_PASSWORD, DB_HOST]):
         SQLALCHEMY_DATABASE_URI = (
-            f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+            f"mysql+mysqlconnector://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
             f"?ssl_ca={BASE_DIR / 'ca.pem'}&ssl_verify_cert=false"
         )
     else:
