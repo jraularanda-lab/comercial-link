@@ -86,7 +86,7 @@ class Producto(db.Model):
 
 
 class Inventario(db.Model):
-    __tablename__ = 'inventario'
+    __tablename__ = 'inventarios'
     id = db.Column(db.Integer, primary_key=True)
     id_producto = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
     id_ubicacion = db.Column(db.Integer, db.ForeignKey('ubicacion.id'), default=1)
