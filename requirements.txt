@@ -8,13 +8,4 @@ mysql-connector-python
 gunicorn
 python-dotenv
 cryptography
-SQLAlchemy
-Werkzeug
-Jinja2
-itsdangerous
-click
-blinker
-MarkupSafe
-WTForms
-alembic
-greenlet
+requests
