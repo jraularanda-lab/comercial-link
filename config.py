@@ -5,8 +5,25 @@ BASE_DIR = Path(__file__).resolve().parent
 
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "CAMBIAR-ESTA-CLAVE")
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "DATABASE_URL",
-        "mysql+pymysql://comercial:comercial@localhost/comercial_link"
-    )
+    
+    # Lee las credenciales individuales de Aiven (o usa el fallback local)
+    DB_USER = os.getenv("DB_USER")
+    DB_PASSWORD = os.getenv("DB_PASSWORD")
+    DB_HOST = os.getenv("DB_HOST")
+    DB_PORT = os.getenv("DB_PORT", "3306")
+    DB_NAME = os.getenv("DB_NAME", "defaultdb")
+    
+    # Si tenemos las variables de Aiven, construimos la URI de producción
+    if all([DB_USER, DB_PASSWORD, DB_HOST]):
+        SQLALCHEMY_DATABASE_URI = (
+            f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+            f"?ssl_ca={BASE_DIR / 'ca.pem'}&ssl_verify_cert=true"
+        )
+    else:
+        # Fallback para desarrollo local
+        SQLALCHEMY_DATABASE_URI = os.getenv(
+            "DATABASE_URL",
+            "mysql+pymysql://comercial:comercial@localhost/comercial_link"
+        )
+    
     SQLALCHEMY_TRACK_MODIFICATIONS = False
