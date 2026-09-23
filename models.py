@@ -9,7 +9,7 @@ def load_user(user_id):
 
 class Usuario(db.Model, UserMixin):
     __tablename__ = 'usuario'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     usuario = db.Column(db.String(50), unique=True, nullable=False)
     nombre = db.Column(db.String(100), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
@@ -27,7 +27,7 @@ class Usuario(db.Model, UserMixin):
 
 class Categoria(db.Model):
     __tablename__ = 'categoria'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     nombre = db.Column(db.String(100), nullable=False)
     
     productos = db.relationship('Producto', backref='categoria', lazy=True)
@@ -35,7 +35,7 @@ class Categoria(db.Model):
 
 class Marca(db.Model):
     __tablename__ = 'marca'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     nombre = db.Column(db.String(100), nullable=False)
     
     productos = db.relationship('Producto', backref='marca', lazy=True)
@@ -43,7 +43,7 @@ class Marca(db.Model):
 
 class Ubicacion(db.Model):
     __tablename__ = 'ubicacion'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     nombre = db.Column(db.String(100), nullable=False)
     
     inventarios = db.relationship('Inventario', backref='ubicacion', lazy=True)
@@ -51,7 +51,7 @@ class Ubicacion(db.Model):
 
 class Cliente(db.Model):
     __tablename__ = 'cliente'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     nombre = db.Column(db.String(150), nullable=False)
     telefono = db.Column(db.String(50))
     email = db.Column(db.String(120))
@@ -61,7 +61,7 @@ class Cliente(db.Model):
 
 class Proveedor(db.Model):
     __tablename__ = 'proveedor'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     nombre = db.Column(db.String(150), nullable=False)
     telefono = db.Column(db.String(50))
     email = db.Column(db.String(120))
@@ -88,7 +88,7 @@ class Producto(db.Model):
     costo = db.Column(db.Numeric(10, 2), default=0.0)
     precio = db.Column(db.Numeric(10, 2), default=0.0)
 
-    # Propiedad de conveniencia para mantener compatibilidad con código antiguo
+    # Propiedad para compatibilidad con código que use 'producto.codigo'
     @property
     def codigo(self):
         return self.sku
@@ -143,9 +143,9 @@ class VentaDetalle(db.Model):
 
 class Compra(db.Model):
     __tablename__ = 'compra'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     folio = db.Column(db.String(50), unique=True, nullable=False)
-    id_proveedor = db.Column(db.Integer, db.ForeignKey('proveedor.id'))
+    id_proveedor = db.Column(db.BigInteger, db.ForeignKey('proveedor.id'))
     fecha = db.Column(db.Date, default=datetime.utcnow)
     subtotal = db.Column(db.Numeric(10, 2), default=0.0)
     total = db.Column(db.Numeric(10, 2), default=0.0)
@@ -156,16 +156,16 @@ class Compra(db.Model):
 
 class CompraDetalle(db.Model):
     __tablename__ = 'compra_detalle'
-    id = db.Column(db.Integer, primary_key=True)
-    id_compra = db.Column(db.Integer, db.ForeignKey('compra.id'), nullable=False)
-    id_producto = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    id_compra = db.Column(db.BigInteger, db.ForeignKey('compra.id'), nullable=False)
+    id_producto = db.Column(db.BigInteger, db.ForeignKey('productos.id'), nullable=False)
     cantidad = db.Column(db.Integer, nullable=False)
     costo_unitario = db.Column(db.Numeric(10, 2), nullable=False)
 
 
 class CuentaMercadoLibre(db.Model):
     __tablename__ = 'cuenta_mercadolibre'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     nombre = db.Column(db.String(100), nullable=False)
     user_id = db.Column(db.String(50))
     access_token = db.Column(db.Text)
@@ -175,9 +175,9 @@ class CuentaMercadoLibre(db.Model):
 
 class OrdenML(db.Model):
     __tablename__ = 'orden_ml'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     order_id = db.Column(db.String(50), unique=True, nullable=False)
-    id_cuenta = db.Column(db.Integer, db.ForeignKey('cuenta_mercadolibre.id'))
+    id_cuenta = db.Column(db.BigInteger, db.ForeignKey('cuenta_mercadolibre.id'))
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
     total = db.Column(db.Numeric(10, 2), default=0.0)
     estatus = db.Column(db.String(50))
@@ -185,7 +185,7 @@ class OrdenML(db.Model):
 
 class NotificacionML(db.Model):
     __tablename__ = 'notificacion_ml'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     resource = db.Column(db.String(255))
     topic = db.Column(db.String(100))
     received_at = db.Column(db.DateTime, default=datetime.utcnow)
