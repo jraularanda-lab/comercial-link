@@ -72,18 +72,25 @@ class Proveedor(db.Model):
 class Producto(db.Model):
     __tablename__ = 'productos'
     id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(150), nullable=False)
-    codigo = db.Column('sku', db.String(50), unique=True)
+    nombre = db.Column(db.String(200), nullable=False)
+    codigo = db.Column('sku', db.String(80), unique=True, nullable=False)
+    codigo_barras = db.Column(db.String(100), unique=True, nullable=True)
+    descripcion = db.Column(db.Text, nullable=True)
     id_categoria = db.Column(db.Integer, db.ForeignKey('categoria.id'), nullable=True)
     id_marca = db.Column(db.Integer, db.ForeignKey('marca.id'), nullable=True)
+    modelo = db.Column(db.String(100), nullable=True)
+    condicion = db.Column(db.String(30), nullable=True, default='Nuevo')
+    precio_costo = db.Column(db.Numeric(12, 2), nullable=True, default=0.0)
+    precio_venta = db.Column(db.Numeric(12, 2), nullable=True, default=0.0)
+    precio_minimo = db.Column(db.Numeric(12, 2), nullable=True, default=0.0)
+    activo = db.Column(db.Boolean, default=True)
+    fecha_alta = db.Column(db.DateTime, nullable=True)
     costo = db.Column(db.Numeric(10, 2), default=0.0)
     precio = db.Column(db.Numeric(10, 2), default=0.0)
-    activo = db.Column(db.Boolean, default=True)
 
     inventarios = db.relationship('Inventario', backref='producto', lazy=True)
     detalles_venta = db.relationship('VentaDetalle', foreign_keys='VentaDetalle.id_producto', back_populates='producto', lazy=True)
     detalles_compra = db.relationship('CompraDetalle', backref='producto', lazy=True)
-
 
 class Inventario(db.Model):
     __tablename__ = 'inventario'
