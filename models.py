@@ -30,7 +30,13 @@ class Categoria(db.Model):
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     nombre = db.Column(db.String(100), nullable=False)
     
-    productos = db.relationship('Producto', backref='categoria', lazy=True)
+    productos = db.relationship(
+        'Producto',
+        primaryjoin='Categoria.id == foreign(Producto.id_categoria)',
+        backref='categoria',
+        lazy=True,
+        viewonly=True
+    )
 
 
 class Marca(db.Model):
@@ -38,7 +44,13 @@ class Marca(db.Model):
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     nombre = db.Column(db.String(100), nullable=False)
     
-    productos = db.relationship('Producto', backref='marca', lazy=True)
+    productos = db.relationship(
+        'Producto',
+        primaryjoin='Marca.id == foreign(Producto.id_marca)',
+        backref='marca',
+        lazy=True,
+        viewonly=True
+    )
 
 
 class Ubicacion(db.Model):
@@ -46,7 +58,13 @@ class Ubicacion(db.Model):
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     nombre = db.Column(db.String(100), nullable=False)
     
-    inventarios = db.relationship('Inventario', backref='ubicacion', lazy=True)
+    inventarios = db.relationship(
+        'Inventario',
+        primaryjoin='Ubicacion.id == foreign(Inventario.id_ubicacion)',
+        backref='ubicacion',
+        lazy=True,
+        viewonly=True
+    )
 
 
 class Cliente(db.Model):
@@ -56,7 +74,13 @@ class Cliente(db.Model):
     telefono = db.Column(db.String(50))
     email = db.Column(db.String(120))
     
-    ventas = db.relationship('Venta', backref='cliente', lazy=True)
+    ventas = db.relationship(
+        'Venta',
+        primaryjoin='Cliente.id == foreign(Venta.id_cliente)',
+        backref='cliente',
+        lazy=True,
+        viewonly=True
+    )
 
 
 class Proveedor(db.Model):
@@ -66,7 +90,13 @@ class Proveedor(db.Model):
     telefono = db.Column(db.String(50))
     email = db.Column(db.String(120))
     
-    compras = db.relationship('Compra', backref='proveedor', lazy=True)
+    compras = db.relationship(
+        'Compra',
+        primaryjoin='Proveedor.id == foreign(Compra.id_proveedor)',
+        backref='proveedor',
+        lazy=True,
+        viewonly=True
+    )
 
 
 class Producto(db.Model):
@@ -76,8 +106,8 @@ class Producto(db.Model):
     codigo_barras = db.Column(db.String(100), unique=True, nullable=True)
     nombre = db.Column(db.String(200), nullable=False)
     descripcion = db.Column(db.Text, nullable=True)
-    id_categoria = db.Column(db.BigInteger, db.ForeignKey('categoria.id'), nullable=True)
-    id_marca = db.Column(db.BigInteger, db.ForeignKey('marca.id'), nullable=True)
+    id_categoria = db.Column(db.BigInteger, nullable=True)
+    id_marca = db.Column(db.BigInteger, nullable=True)
     modelo = db.Column(db.String(100), nullable=True)
     condicion = db.Column(db.String(30), nullable=False, default='Nuevo')
     precio_costo = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
@@ -88,7 +118,6 @@ class Producto(db.Model):
     costo = db.Column(db.Numeric(10, 2), default=0.0)
     precio = db.Column(db.Numeric(10, 2), default=0.0)
 
-    # Propiedad para compatibilidad con código que use 'producto.codigo'
     @property
     def codigo(self):
         return self.sku
@@ -97,16 +126,36 @@ class Producto(db.Model):
     def codigo(self, value):
         self.sku = value
 
-    inventarios = db.relationship('Inventario', backref='producto', lazy=True)
-    detalles_venta = db.relationship('VentaDetalle', foreign_keys='VentaDetalle.id_producto', back_populates='producto', lazy=True)
-    detalles_compra = db.relationship('CompraDetalle', backref='producto', lazy=True)
+    inventarios = db.relationship(
+        'Inventario',
+        primaryjoin='Producto.id == foreign(Inventario.id_producto)',
+        backref='producto',
+        lazy=True,
+        viewonly=True
+    )
+    
+    detalles_venta = db.relationship(
+        'VentaDetalle',
+        primaryjoin='Producto.id == foreign(VentaDetalle.id_producto)',
+        backref='producto',
+        lazy=True,
+        viewonly=True
+    )
+    
+    detalles_compra = db.relationship(
+        'CompraDetalle',
+        primaryjoin='Producto.id == foreign(CompraDetalle.id_producto)',
+        backref='producto_compra',
+        lazy=True,
+        viewonly=True
+    )
 
 
 class Inventario(db.Model):
     __tablename__ = 'inventarios'
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    id_producto = db.Column(db.BigInteger, db.ForeignKey('productos.id'), nullable=False)
-    id_ubicacion = db.Column(db.BigInteger, db.ForeignKey('ubicacion.id'), default=1)
+    id_producto = db.Column(db.BigInteger, nullable=False)
+    id_ubicacion = db.Column(db.BigInteger, nullable=True, default=1)
     existencia = db.Column(db.Integer, nullable=False, default=0)
     apartado = db.Column(db.Integer, nullable=False, default=0)
 
@@ -115,7 +164,7 @@ class Venta(db.Model):
     __tablename__ = 'ventas'
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     folio = db.Column(db.String(40), unique=True, nullable=False)
-    id_cliente = db.Column(db.BigInteger, db.ForeignKey('cliente.id'), nullable=True)
+    id_cliente = db.Column(db.BigInteger, nullable=True)
     canal = db.Column(db.String(30), nullable=False)
     subtotal = db.Column(db.Numeric(12, 2), default=0.0)
     descuento = db.Column(db.Numeric(12, 2), default=0.0)
@@ -124,41 +173,53 @@ class Venta(db.Model):
     id_usuario = db.Column(db.BigInteger, nullable=True)
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
 
-    detalles = db.relationship('VentaDetalle', foreign_keys='VentaDetalle.id_venta', back_populates='venta', cascade="all, delete-orphan", lazy=True)
+    detalles = db.relationship(
+        'VentaDetalle',
+        primaryjoin='Venta.id == foreign(VentaDetalle.id_venta)',
+        backref='venta',
+        cascade="all, delete-orphan",
+        lazy=True,
+        viewonly=True
+    )
 
 
 class VentaDetalle(db.Model):
     __tablename__ = 'venta_detalles'
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    id_venta = db.Column(db.BigInteger, db.ForeignKey('ventas.id'), nullable=False)
-    id_producto = db.Column(db.BigInteger, db.ForeignKey('productos.id'), nullable=False)
+    id_venta = db.Column(db.BigInteger, nullable=False)
+    id_producto = db.Column(db.BigInteger, nullable=False)
     cantidad = db.Column(db.Integer, nullable=False)
     precio_unitario = db.Column(db.Numeric(12, 2), nullable=False)
     costo_unitario = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
     descuento = db.Column(db.Numeric(12, 2), nullable=True, default=0.0)
-
-    producto = db.relationship('Producto', foreign_keys=[id_producto], back_populates='detalles_venta')
-    venta = db.relationship('Venta', foreign_keys=[id_venta], back_populates='detalles')
+    # Las relaciones producto y venta se crean vía backref arriba
 
 
 class Compra(db.Model):
     __tablename__ = 'compra'
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     folio = db.Column(db.String(50), unique=True, nullable=False)
-    id_proveedor = db.Column(db.BigInteger, db.ForeignKey('proveedor.id'))
+    id_proveedor = db.Column(db.BigInteger, nullable=True)
     fecha = db.Column(db.Date, default=datetime.utcnow)
     subtotal = db.Column(db.Numeric(10, 2), default=0.0)
     total = db.Column(db.Numeric(10, 2), default=0.0)
     estatus = db.Column(db.String(30), default='COMPLETADA')
 
-    detalles = db.relationship('CompraDetalle', backref='compra', cascade="all, delete-orphan", lazy=True)
+    detalles = db.relationship(
+        'CompraDetalle',
+        primaryjoin='Compra.id == foreign(CompraDetalle.id_compra)',
+        backref='compra',
+        cascade="all, delete-orphan",
+        lazy=True,
+        viewonly=True
+    )
 
 
 class CompraDetalle(db.Model):
     __tablename__ = 'compra_detalle'
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    id_compra = db.Column(db.BigInteger, db.ForeignKey('compra.id'), nullable=False)
-    id_producto = db.Column(db.BigInteger, db.ForeignKey('productos.id'), nullable=False)
+    id_compra = db.Column(db.BigInteger, nullable=False)
+    id_producto = db.Column(db.BigInteger, nullable=False)
     cantidad = db.Column(db.Integer, nullable=False)
     costo_unitario = db.Column(db.Numeric(10, 2), nullable=False)
 
@@ -177,7 +238,7 @@ class OrdenML(db.Model):
     __tablename__ = 'orden_ml'
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     order_id = db.Column(db.String(50), unique=True, nullable=False)
-    id_cuenta = db.Column(db.BigInteger, db.ForeignKey('cuenta_mercadolibre.id'))
+    id_cuenta = db.Column(db.BigInteger, nullable=True)
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
     total = db.Column(db.Numeric(10, 2), default=0.0)
     estatus = db.Column(db.String(50))
