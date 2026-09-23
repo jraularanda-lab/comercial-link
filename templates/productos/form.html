@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% block title %}Nuevo producto{% endblock %}
+{% block content %}<h1>Nuevo producto</h1><form method="post" class="card p-4">
+<div class="row g-3">
+<div class="col-md-4"><label>SKU</label><input class="form-control" name="sku" required></div>
+<div class="col-md-4"><label>Código de barras</label><input class="form-control" name="codigo_barras"></div>
+<div class="col-md-4"><label>Condición</label><select class="form-select" name="condicion"><option>NUEVO</option><option>USADO</option><option>REACONDICIONADO</option><option>REMATE</option></select></div>
+<div class="col-md-8"><label>Nombre</label><input class="form-control" name="nombre" required></div>
+<div class="col-md-4"><label>Modelo</label><input class="form-control" name="modelo"></div>
+<div class="col-md-6"><label>Categoría</label><select class="form-select" name="id_categoria"><option value="">--</option>{% for c in categorias %}<option value="{{c.id}}">{{c.nombre}}</option>{% endfor %}</select></div>
+<div class="col-md-6"><label>Marca</label><select class="form-select" name="id_marca"><option value="">--</option>{% for m in marcas %}<option value="{{m.id}}">{{m.nombre}}</option>{% endfor %}</select></div>
+<div class="col-md-4"><label>Costo</label><input class="form-control" type="number" step=".01" name="precio_costo" value="0"></div>
+<div class="col-md-4"><label>Precio venta</label><input class="form-control" type="number" step=".01" name="precio_venta" value="0"></div>
+<div class="col-md-4"><label>Precio mínimo</label><input class="form-control" type="number" step=".01" name="precio_minimo" value="0"></div>
+<div class="col-12"><label>Descripción</label><textarea class="form-control" name="descripcion"></textarea></div>
+</div><div class="mt-4"><button class="btn btn-dark">Guardar</button> <a class="btn btn-outline-secondary" href="{{url_for('productos.index')}}">Cancelar</a></div>
+</form>{% endblock %}

@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container my-4">
+    <!-- Botones de acción superior (Ocultos al imprimir) -->
+    <div class="d-flex justify-content-between align-items-center mb-4 d-print-none">
+        <h2>Recibo de Venta</h2>
+        <div>
+            <button onclick="window.print()" class="btn btn-primary me-2">🖨️ Imprimir Recibo</button>
+            <a href="{{ url_for('ventas.nueva') }}" class="btn btn-outline-primary me-2">+ Nueva Venta</a>
+            <a href="{{ url_for('ventas.index') }}" class="btn btn-secondary">Regresar al Listado</a>
+        </div>
+    </div>
+
+    <!-- Contenedor Estilo Recibo Físico Confortara -->
+    <div class="card p-4 shadow-sm bg-white border-dark mx-auto" id="areaImpresion" style="max-width: 800px; font-family: Arial, sans-serif; color: #000;">
+        
+        <!-- Encabezado Empresa -->
+        <div class="text-center mb-2">
+            <h3 class="fw-bold m-0" style="letter-spacing: 2px;">Confortara</h3>
+            <small style="font-size: 11px;">
+                Calle 1 No. 220-A BIS x Anillo Periférico, Zona Industrial, C.P. 97204, Mérida, Yuc.<br>
+                Tel. 999 . 919 . 6520 | Móvil. 999 . 949 . 1602<br>
+                E-mail. confortaramx@gmail.com
+            </small>
+        </div>
+
+        <h4 class="text-center fw-bold my-2" style="letter-spacing: 4px; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 0;">R E C I B O</h4>
+
+        <!-- Fecha -->
+        <div class="text-end mb-3" style="font-size: 13px;">
+            Mérida, Yuc., a {{ venta.fecha.strftime('%d de %B de %Y') if venta.fecha else "22 de Septiembre de 2026" }}
+        </div>
+
+        <!-- Datos Principales -->
+        <div class="mb-2" style="font-size: 14px;">
+            <strong>Recibí de:</strong> 
+            <span class="border-bottom border-dark d-inline-block px-2 fw-bold" style="min-width: 70%;">
+                {{ venta.cliente.nombre if venta.cliente else "PÚBLICO GENERAL" }}
+            </span>
+        </div>
+
+        <div class="mb-2" style="font-size: 14px;">
+            <strong>La cantidad de:</strong> 
+            <span class="border-bottom border-dark d-inline-block px-2 fw-bold" style="min-width: 80%;">
+                $ {{ "%.2f"|format(venta.total) }} M.N.
+            </span>
+        </div>
+
+        <div class="mb-3" style="font-size: 14px;">
+            <strong>Por concepto de:</strong> 
+            <span class="border-bottom border-dark d-inline-block px-2" style="min-width: 75%;">
+                Pago por el Total de los artículos y/o servicios listados a continuación:
+            </span>
+        </div>
+
+        <!-- Tabla de Productos -->
+        <table class="table table-bordered border-dark mt-2" style="font-size: 13px;">
+            <thead class="table-dark text-center">
+                <tr>
+                    <th style="width: 20%;">Modelo</th>
+                    <th style="width: 10%;">Cant.</th>
+                    <th style="width: 40%;">Descripción</th>
+                    <th style="width: 15%;">P. Unitario</th>
+                    <th style="width: 15%;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in detalles %}
+                <tr>
+                    <!-- Corregido de d.producto.sku a d.producto.codigo según models.py -->
+                    <td class="text-center fw-bold">{{ d.producto.codigo }}</td>
+                    <td class="text-center">{{ d.cantidad }}</td>
+                    <td>{{ d.producto.nombre }}</td>
+                    <td class="text-end">${{ "%.2f"|format(d.precio_unitario) }}</td>
+                    <td class="text-end">${{ "%.2f"|format(d.cantidad * d.precio_unitario) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="4" class="text-end fw-bold">GRAN TOTAL</td>
+                    <td class="text-end fw-bold bg-light">${{ "%.2f"|format(venta.total) }}</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <!-- Notas Legales / Comerciales -->
+        <div class="mt-3 text-muted" style="font-size: 10px; line-height: 1.2;">
+            <strong>NOTAS:</strong><br>
+            • Precios incluyen IVA.<br>
+            • Precios incluyen suministro de los productos en la ciudad de Mérida, Yuc.<br>
+            • Una vez aceptada y firmada el presupuesto no se aceptan devoluciones ni cambios.<br>
+            • No se entregará producto que no esté saldado en su totalidad.<br>
+            • Forma de Pago: 100% Anticipada.
+        </div>
+
+        <!-- Firmas -->
+        <div class="row mt-5 text-center" style="font-size: 12px;">
+            <div class="col-6">
+                <div class="border-top border-dark pt-1 mx-auto" style="width: 80%;">
+                    Miguel Angel Dominguez Arellano<br>
+                    <strong>Confortara</strong>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="border-top border-dark pt-1 mx-auto" style="width: 80%;">
+                    {{ venta.cliente.nombre if venta.cliente else "CLIENTE" }}<br>
+                    <strong>Cliente</strong>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Estilos específicos para impresión limpia -->
+<style>
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #areaImpresion, #areaImpresion * {
+        visibility: visible;
+    }
+    #areaImpresion {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        border: none !important;
+        box-shadow: none !important;
+    }
+}
+</style>
+{% endblock %}

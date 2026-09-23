@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% block title %}Dashboard{% endblock %}
+{% block content %}<h1>Dashboard</h1><p class="text-muted">Control general de ventas e inventario.</p>
+<div class="row g-3">
+<div class="col-md-3"><div class="card p-3"><small>Productos</small><h2>{{ productos }}</h2></div></div>
+<div class="col-md-3"><div class="card p-3"><small>Ventas registradas</small><h2>{{ ventas }}</h2></div></div>
+<div class="col-md-3"><div class="card p-3"><small>Stock bajo</small><h2>{{ inventario_bajo }}</h2></div></div>
+<div class="col-md-3"><div class="card p-3"><small>Ventas acumuladas</small><h2>${{ "%.2f"|format(total_ventas|float) }}</h2></div></div>
+</div>{% endblock %}

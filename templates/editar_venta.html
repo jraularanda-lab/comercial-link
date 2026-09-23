@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Editar Venta #{{ venta.id }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="fecha" class="form-label">Fecha y Hora de la Venta</label>
+                            <!-- Si tu modelo usa datetime, formateamos el valor para el input type="datetime-local" -->
+                            <input type="datetime-local" class="form-control" id="fecha" name="fecha" 
+                                   value="{{ venta.fecha.strftime('%Y-%m-%dT%H:%M') if venta.fecha else '' }}" required>
+                        </div>
+
+                        <!-- Aquí puedes agregar más campos editables si lo requieres -->
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancelar</a>
+                            <button type="submit" class="btn btn-success">Guardar Cambios</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

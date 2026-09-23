@@ -1,0 +1,6 @@
+{% extends 'base.html' %}{% block content %}
+<div class="d-flex justify-content-between align-items-center"><h2>Mercado Libre</h2><a class="btn btn-warning" href="{{ url_for('mercadolibre.oauth') }}">Conectar cuenta</a></div>
+<div class="alert alert-info mt-3">Webhook: <code>/mercadolibre/webhook</code>. Debe publicarse mediante HTTPS y registrarse en Mercado Libre Developers.</div>
+<div class="card p-3 mb-3"><h5>Cuentas conectadas</h5>{% for c in cuentas %}<div>{{c.nickname}} — ID {{c.ml_user_id}} — vence {{c.expires_at}}</div>{% else %}<div>No hay cuentas conectadas.</div>{% endfor %}</div>
+<div class="card p-3"><h5>Órdenes recibidas</h5><table class="table"><tr><th>Orden</th><th>Fecha</th><th>Estado</th><th>Comprador</th><th>Total</th></tr>{% for o in ordenes %}<tr><td>{{o.order_id}}</td><td>{{o.fecha_creacion}}</td><td>{{o.estado}}</td><td>{{o.comprador}}</td><td>${{o.total}}</td></tr>{% else %}<tr><td colspan="5">Aún no hay órdenes sincronizadas.</td></tr>{% endfor %}</table></div>
+{% endblock %}

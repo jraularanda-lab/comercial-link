@@ -1,0 +1,4 @@
+{% extends "base.html" %}{% block title %}Compras{% endblock %}
+{% block content %}<h1>Compras</h1><div class="card p-3"><table class="table"><thead><tr><th>Folio</th><th>Fecha</th><th>Proveedor</th><th>Total</th><th>Estatus</th></tr></thead><tbody>
+{% for c in compras %}<tr><td>{{c.folio}}</td><td>{{c.fecha.strftime("%d/%m/%Y")}}</td><td>{{c.proveedor.nombre if c.proveedor else "-"}}</td><td>${{c.total}}</td><td>{{c.estatus}}</td></tr>{% else %}<tr><td colspan="5">No hay compras.</td></tr>{% endfor %}
+</tbody></table></div>{% endblock %}

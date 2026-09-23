@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% block title %}Productos{% endblock %}
+{% block content %}<div class="d-flex justify-content-between align-items-center mb-3"><h1>Productos</h1><a class="btn btn-dark" href="{{ url_for('productos.nuevo') }}">Nuevo producto</a></div>
+<form class="row mb-3"><div class="col-md-5"><input class="form-control" name="q" value="{{q}}" placeholder="Buscar por SKU o nombre"></div><div class="col"><button class="btn btn-outline-secondary">Buscar</button></div></form>
+<div class="card p-3"><div class="table-responsive"><table class="table align-middle"><thead><tr><th>SKU</th><th>Producto</th><th>Condición</th><th>Costo</th><th>Venta</th></tr></thead><tbody>
+{% for p in productos %}<tr><td>{{p.sku}}</td><td>{{p.nombre}}</td><td>{{p.condicion}}</td><td>${{p.precio_costo}}</td><td>${{p.precio_venta}}</td></tr>{% else %}<tr><td colspan="5">No hay productos.</td></tr>{% endfor %}
+</tbody></table></div></div>{% endblock %}
