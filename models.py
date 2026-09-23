@@ -71,47 +71,59 @@ class Proveedor(db.Model):
 
 class Producto(db.Model):
     __tablename__ = 'productos'
-    id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(200), nullable=False)
-    codigo = db.Column('sku', db.String(80), unique=True, nullable=False)
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    sku = db.Column(db.String(80), unique=True, nullable=False)
     codigo_barras = db.Column(db.String(100), unique=True, nullable=True)
+    nombre = db.Column(db.String(200), nullable=False)
     descripcion = db.Column(db.Text, nullable=True)
-    id_categoria = db.Column(db.Integer, db.ForeignKey('categoria.id'), nullable=True)
-    id_marca = db.Column(db.Integer, db.ForeignKey('marca.id'), nullable=True)
+    id_categoria = db.Column(db.BigInteger, db.ForeignKey('categoria.id'), nullable=True)
+    id_marca = db.Column(db.BigInteger, db.ForeignKey('marca.id'), nullable=True)
     modelo = db.Column(db.String(100), nullable=True)
-    condicion = db.Column(db.String(30), nullable=True, default='Nuevo')
-    precio_costo = db.Column(db.Numeric(12, 2), nullable=True, default=0.0)
-    precio_venta = db.Column(db.Numeric(12, 2), nullable=True, default=0.0)
-    precio_minimo = db.Column(db.Numeric(12, 2), nullable=True, default=0.0)
-    activo = db.Column(db.Boolean, default=True)
+    condicion = db.Column(db.String(30), nullable=False, default='Nuevo')
+    precio_costo = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
+    precio_venta = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
+    precio_minimo = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
+    activo = db.Column(db.Boolean, nullable=False, default=True)
     fecha_alta = db.Column(db.DateTime, nullable=True)
     costo = db.Column(db.Numeric(10, 2), default=0.0)
     precio = db.Column(db.Numeric(10, 2), default=0.0)
+
+    # Propiedad de conveniencia para mantener compatibilidad con código antiguo
+    @property
+    def codigo(self):
+        return self.sku
+    
+    @codigo.setter
+    def codigo(self, value):
+        self.sku = value
 
     inventarios = db.relationship('Inventario', backref='producto', lazy=True)
     detalles_venta = db.relationship('VentaDetalle', foreign_keys='VentaDetalle.id_producto', back_populates='producto', lazy=True)
     detalles_compra = db.relationship('CompraDetalle', backref='producto', lazy=True)
 
+
 class Inventario(db.Model):
     __tablename__ = 'inventarios'
-    id = db.Column(db.Integer, primary_key=True)
-    id_producto = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
-    id_ubicacion = db.Column(db.Integer, db.ForeignKey('ubicacion.id'), default=1)
-    existencia = db.Column(db.Integer, default=0)
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    id_producto = db.Column(db.BigInteger, db.ForeignKey('productos.id'), nullable=False)
+    id_ubicacion = db.Column(db.BigInteger, db.ForeignKey('ubicacion.id'), default=1)
+    existencia = db.Column(db.Integer, nullable=False, default=0)
+    apartado = db.Column(db.Integer, nullable=False, default=0)
+
 
 class Venta(db.Model):
     __tablename__ = 'ventas'
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    folio = db.Column(db.String(50), unique=True, nullable=False)
-    canal = db.Column(db.String(50))
-    id_cliente = db.Column(db.Integer, db.ForeignKey('cliente.id'))
-    fecha = db.Column(db.Date, default=datetime.utcnow)
-    subtotal = db.Column(db.Numeric(10, 2), default=0.0)
-    descuento = db.Column(db.Numeric(10, 2), default=0.0)
-    total = db.Column(db.Numeric(10, 2), default=0.0)
-    estatus = db.Column(db.String(30), default='COMPLETADA')
+    folio = db.Column(db.String(40), unique=True, nullable=False)
+    id_cliente = db.Column(db.BigInteger, db.ForeignKey('cliente.id'), nullable=True)
+    canal = db.Column(db.String(30), nullable=False)
+    subtotal = db.Column(db.Numeric(12, 2), default=0.0)
+    descuento = db.Column(db.Numeric(12, 2), default=0.0)
+    total = db.Column(db.Numeric(12, 2), default=0.0)
+    estatus = db.Column(db.String(30), nullable=False, default='COMPLETADA')
+    id_usuario = db.Column(db.BigInteger, nullable=True)
+    fecha = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Relación con back_populates apuntando a 'venta' en VentaDetalle
     detalles = db.relationship('VentaDetalle', foreign_keys='VentaDetalle.id_venta', back_populates='venta', cascade="all, delete-orphan", lazy=True)
 
 
@@ -119,15 +131,15 @@ class VentaDetalle(db.Model):
     __tablename__ = 'venta_detalles'
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     id_venta = db.Column(db.BigInteger, db.ForeignKey('ventas.id'), nullable=False)
-    id_producto = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False) # <--- Cambiado a 'productos.id'
+    id_producto = db.Column(db.BigInteger, db.ForeignKey('productos.id'), nullable=False)
     cantidad = db.Column(db.Integer, nullable=False)
-    precio_unitario = db.Column(db.Numeric(10, 2), nullable=False)
-    costo_unitario = db.Column(db.Numeric(10, 2), default=0.0)
-    descuento = db.Column(db.Numeric(10, 2), default=0.0)
+    precio_unitario = db.Column(db.Numeric(12, 2), nullable=False)
+    costo_unitario = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
+    descuento = db.Column(db.Numeric(12, 2), nullable=True, default=0.0)
 
-    # Relaciones explícitas en ambos sentidos
     producto = db.relationship('Producto', foreign_keys=[id_producto], back_populates='detalles_venta')
     venta = db.relationship('Venta', foreign_keys=[id_venta], back_populates='detalles')
+
 
 class Compra(db.Model):
     __tablename__ = 'compra'
@@ -146,9 +158,10 @@ class CompraDetalle(db.Model):
     __tablename__ = 'compra_detalle'
     id = db.Column(db.Integer, primary_key=True)
     id_compra = db.Column(db.Integer, db.ForeignKey('compra.id'), nullable=False)
-    id_producto = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False) # <--- Cambiado a 'productos.id'
+    id_producto = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
     cantidad = db.Column(db.Integer, nullable=False)
     costo_unitario = db.Column(db.Numeric(10, 2), nullable=False)
+
 
 class CuentaMercadoLibre(db.Model):
     __tablename__ = 'cuenta_mercadolibre'
