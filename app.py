@@ -1,8 +1,16 @@
+import os
 from flask import Flask
 from config import Config
 from extensions import db, login_manager
-import models  # <--- Importar todo el archivo models asegura que SQLAlchemy registre todas las tablas
+import models
 
+
+# ⬇️ NUEVO: Escribe el certificado SSL de Aiven como archivo al arrancar
+pem_content = os.environ.get('CA_PEM_CONTENT')
+if pem_content:
+    with open('ca.pem', 'w') as f:
+        f.write(pem_content)
+  
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)

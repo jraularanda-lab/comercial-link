@@ -9,3 +9,4 @@ env/
 .vscode/
 .idea/
 instance/
+ca.pem
