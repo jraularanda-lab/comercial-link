@@ -257,8 +257,8 @@ def recibo(id_venta):
 def reporte_mensual():
     filtro_mes = request.args.get('mes', '')
     
-    # El campo SKU en tu modelo Producto se llama 'codigo'
-    col_codigo = Producto.codigo
+    # ✅ USA Producto.sku (columna de la BD), no Producto.codigo (propiedad Python)
+    col_codigo = Producto.sku
     
     query = db.session.query(
         db.extract('year', Venta.fecha).label('anio'),
