@@ -1,8 +1,110 @@
-{% extends "base.html" %}{% block title %}Dashboard{% endblock %}
-{% block content %}<h1>Dashboard</h1><p class="text-muted">Control general de ventas e inventario.</p>
+{% extends "base.html" %}
+{% block title %}Dashboard · Comercial Link{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="kpi">
+      <div class="kpi-icon primary"><i class="bi bi-tags"></i></div>
+      <div class="kpi-label">Productos</div>
+      <div class="kpi-value">{{ productos }}</div>
+      <div class="kpi-trend"><i class="bi bi-box"></i> En catálogo activo</div>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="kpi">
+      <div class="kpi-icon success"><i class="bi bi-cart-check"></i></div>
+      <div class="kpi-label">Ventas registradas</div>
+      <div class="kpi-value">{{ ventas }}</div>
+      <div class="kpi-trend up"><i class="bi bi-arrow-up-right"></i> Total histórico</div>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="kpi">
+      <div class="kpi-icon warning"><i class="bi bi-exclamation-triangle"></i></div>
+      <div class="kpi-label">Stock bajo</div>
+      <div class="kpi-value">{{ inventario_bajo }}</div>
+      <div class="kpi-trend down"><i class="bi bi-arrow-down-right"></i> Requiere reposición</div>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="kpi">
+      <div class="kpi-icon danger"><i class="bi bi-currency-dollar"></i></div>
+      <div class="kpi-label">Ventas acumuladas</div>
+      <div class="kpi-value">${{ "%.2f"|format(total_ventas|float) }}</div>
+      <div class="kpi-trend up"><i class="bi bi-graph-up"></i> Ingresos totales</div>
+    </div>
+  </div>
+</div>
+
+<!-- Accesos rápidos + Actividad -->
 <div class="row g-3">
-<div class="col-md-3"><div class="card p-3"><small>Productos</small><h2>{{ productos }}</h2></div></div>
-<div class="col-md-3"><div class="card p-3"><small>Ventas registradas</small><h2>{{ ventas }}</h2></div></div>
-<div class="col-md-3"><div class="card p-3"><small>Stock bajo</small><h2>{{ inventario_bajo }}</h2></div></div>
-<div class="col-md-3"><div class="card p-3"><small>Ventas acumuladas</small><h2>${{ "%.2f"|format(total_ventas|float) }}</h2></div></div>
-</div>{% endblock %}
+  <div class="col-12 col-lg-8">
+    <div class="cl-panel h-100">
+      <div class="cl-panel-title"><i class="bi bi-lightning-charge text-warning"></i> Accesos rápidos</div>
+      <div class="row g-3">
+        <div class="col-6 col-md-3">
+          <a href="{{ url_for('ventas.nueva') }}" class="text-decoration-none">
+            <div class="kpi text-center">
+              <div class="kpi-icon primary mx-auto"><i class="bi bi-cart-plus"></i></div>
+              <div class="kpi-label">Nueva venta</div>
+            </div>
+          </a>
+        </div>
+        <div class="col-6 col-md-3">
+          <a href="{{ url_for('productos.index') }}" class="text-decoration-none">
+            <div class="kpi text-center">
+              <div class="kpi-icon success mx-auto"><i class="bi bi-plus-square"></i></div>
+              <div class="kpi-label">Productos</div>
+            </div>
+          </a>
+        </div>
+        <div class="col-6 col-md-3">
+          <a href="{{ url_for('inventario.index') }}" class="text-decoration-none">
+            <div class="kpi text-center">
+              <div class="kpi-icon warning mx-auto"><i class="bi bi-boxes"></i></div>
+              <div class="kpi-label">Inventario</div>
+            </div>
+          </a>
+        </div>
+        <div class="col-6 col-md-3">
+          <a href="{{ url_for('reportes.index') }}" class="text-decoration-none">
+            <div class="kpi text-center">
+              <div class="kpi-icon danger mx-auto"><i class="bi bi-graph-up-arrow"></i></div>
+              <div class="kpi-label">Reportes</div>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-4">
+    <div class="cl-panel h-100">
+      <div class="cl-panel-title"><i class="bi bi-info-circle text-primary"></i> Estado del sistema</div>
+      <ul class="list-unstyled mb-0 small">
+        <li class="d-flex justify-content-between py-2 border-bottom">
+          <span class="text-muted">Base de datos</span>
+          <span class="badge bg-success-subtle text-success-emphasis">Conectada</span>
+        </li>
+        <li class="d-flex justify-content-between py-2 border-bottom">
+          <span class="text-muted">Usuario</span>
+          <span class="fw-semibold">{{ current_user.nombre }}</span>
+        </li>
+        <li class="d-flex justify-content-between py-2 border-bottom">
+          <span class="text-muted">Rol</span>
+          <span class="badge bg-primary-subtle text-primary-emphasis">{{ current_user.rol }}</span>
+        </li>
+        <li class="d-flex justify-content-between py-2">
+          <span class="text-muted">Mercado Libre</span>
+          <span class="badge bg-secondary-subtle text-secondary-emphasis">Sin sincronizar</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
