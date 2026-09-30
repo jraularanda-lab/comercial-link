@@ -41,68 +41,56 @@
 </div>
 
 <!-- Accesos rápidos + Actividad -->
-<div class="row g-3">
-  <div class="col-12 col-lg-8">
-    <div class="cl-panel h-100">
-      <div class="cl-panel-title"><i class="bi bi-lightning-charge text-warning"></i> Accesos rápidos</div>
-      <div class="row g-3">
-        <div class="col-6 col-md-3">
-          <a href="{{ url_for('ventas.nueva') }}" class="text-decoration-none">
-            <div class="kpi text-center">
-              <div class="kpi-icon primary mx-auto"><i class="bi bi-cart-plus"></i></div>
-              <div class="kpi-label">Nueva venta</div>
-            </div>
-          </a>
+<div class="cl-panel h-100">
+  <div class="cl-panel-title"><i class="bi bi-lightning-charge text-warning"></i> Accesos rápidos</div>
+  <div class="row g-3">
+    <div class="col-6 col-md-3">
+      <a href="{{ url_for('ventas.nueva') }}" class="text-decoration-none">
+        <div class="kpi text-center">
+          <div class="kpi-icon primary mx-auto"><i class="bi bi-cart-plus"></i></div>
+          <div class="kpi-label">Nueva venta</div>
         </div>
-        <div class="col-6 col-md-3">
-          <a href="{{ url_for('productos.index') }}" class="text-decoration-none">
-            <div class="kpi text-center">
-              <div class="kpi-icon success mx-auto"><i class="bi bi-plus-square"></i></div>
-              <div class="kpi-label">Productos</div>
-            </div>
-          </a>
+      </a>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="{{ url_for('productos.index') }}" class="text-decoration-none">
+        <div class="kpi text-center">
+          <div class="kpi-icon success mx-auto"><i class="bi bi-plus-square"></i></div>
+          <div class="kpi-label">Productos</div>
         </div>
-        <div class="col-6 col-md-3">
-          <a href="{{ url_for('inventario.index') }}" class="text-decoration-none">
-            <div class="kpi text-center">
-              <div class="kpi-icon warning mx-auto"><i class="bi bi-boxes"></i></div>
-              <div class="kpi-label">Inventario</div>
-            </div>
-          </a>
+      </a>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="{{ url_for('inventario.index') }}" class="text-decoration-none">
+        <div class="kpi text-center">
+          <div class="kpi-icon warning mx-auto"><i class="bi bi-boxes"></i></div>
+          <div class="kpi-label">Inventario</div>
         </div>
-        <div class="col-6 col-md-3">
-          <a href="{{ url_for('reportes.index') }}" class="text-decoration-none">
-            <div class="kpi text-center">
-              <div class="kpi-icon danger mx-auto"><i class="bi bi-graph-up-arrow"></i></div>
-              <div class="kpi-label">Reportes</div>
-            </div>
-          </a>
+      </a>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="{{ url_for('ventas.reporte_mensual') }}" class="text-decoration-none">
+        <div class="kpi text-center">
+          <div class="kpi-icon danger mx-auto"><i class="bi bi-receipt"></i></div>
+          <div class="kpi-label">Reporte mensual</div>
         </div>
-      </div>
+      </a>
     </div>
   </div>
 
-  <div class="col-12 col-lg-4">
-    <div class="cl-panel h-100">
-      <div class="cl-panel-title"><i class="bi bi-info-circle text-primary"></i> Estado del sistema</div>
-      <ul class="list-unstyled mb-0 small">
-        <li class="d-flex justify-content-between py-2 border-bottom">
-          <span class="text-muted">Base de datos</span>
-          <span class="badge bg-success-subtle text-success-emphasis">Conectada</span>
-        </li>
-        <li class="d-flex justify-content-between py-2 border-bottom">
-          <span class="text-muted">Usuario</span>
-          <span class="fw-semibold">{{ current_user.nombre }}</span>
-        </li>
-        <li class="d-flex justify-content-between py-2 border-bottom">
-          <span class="text-muted">Rol</span>
-          <span class="badge bg-primary-subtle text-primary-emphasis">{{ current_user.rol }}</span>
-        </li>
-        <li class="d-flex justify-content-between py-2">
-          <span class="text-muted">Mercado Libre</span>
-          <span class="badge bg-secondary-subtle text-secondary-emphasis">Sin sincronizar</span>
-        </li>
-      </ul>
+  <!-- Fila secundaria: Reportes generales -->
+  <div class="row g-3 mt-1">
+    <div class="col-12">
+      <a href="{{ url_for('reportes.index') }}" class="text-decoration-none">
+        <div class="d-flex align-items-center gap-3 p-3 rounded-3 border bg-light">
+          <div class="kpi-icon primary"><i class="bi bi-graph-up-arrow"></i></div>
+          <div>
+            <div class="fw-semibold text-dark">Reportes generales</div>
+            <div class="text-muted small">Consultas por rango de fechas, exportación CSV</div>
+          </div>
+          <i class="bi bi-arrow-right ms-auto text-muted"></i>
+        </div>
+      </a>
     </div>
   </div>
 </div>

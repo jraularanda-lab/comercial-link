@@ -1,83 +1,189 @@
 {% extends "base.html" %}
+{% block title %}Reporte Mensual · Comercial Link{% endblock %}
+{% block page_title %}Reporte Mensual{% endblock %}
+
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="fw-bold text-dark mb-1">Movimiento de Productos por Mes</h2>
-            <p class="text-muted mb-0">Resumen agrupado de cantidades vendidas e ingresos generados por periodo.</p>
-        </div>
-        <a href="{{ url_for('ventas.index') }}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-1"></i> Regresar a Ventas
-        </a>
+
+<!-- Header -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+  <div>
+    <h2 class="fw-bold text-dark mb-1">Reporte Mensual de Ventas</h2>
+    <p class="text-muted mb-0">Desglose de tickets con productos, costos y ganancias por periodo.</p>
+  </div>
+  <a href="{{ url_for('ventas.index') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Regresar a Ventas
+  </a>
+</div>
+
+<!-- Filtro + Exportaciones -->
+<div class="cl-panel mb-4">
+  <form method="GET" action="{{ url_for('ventas.reporte_mensual') }}" class="row g-3 align-items-end">
+    <div class="col-md-4">
+      <label class="form-label small fw-bold text-secondary">Filtrar mes específico</label>
+      <input type="month" class="form-control" name="mes" value="{{ filtro_mes }}">
     </div>
 
-    <!-- Tarjeta de Filtro por Mes -->
-    <div class="card shadow-sm border-0 mb-4 bg-white rounded-3">
-        <div class="card-body p-3">
-            <form method="GET" action="{{ url_for('ventas.reporte_mensual') }}" class="row g-3 align-items-end">
-                <div class="col-md-4">
-                    <label for="mes" class="form-label small fw-bold text-secondary">Filtrar Mes Específico</label>
-                    <input type="month" class="form-control form-control-sm" id="mes" name="mes" value="{{ filtro_mes }}">
-                </div>
-                <div class="col-md-4 d-flex gap-2">
-                    <button type="submit" class="btn btn-dark btn-sm shadow-sm">
-                        <i class="fas fa-filter me-1"></i> Aplicar Filtro
-                    </button>
-                    <a href="{{ url_for('ventas.reporte_mensual') }}" class="btn btn-outline-secondary btn-sm">
-                        <i class="fas fa-undo me-1"></i> Ver Todos
-                    </a>
-                </div>
-            </form>
-        </div>
+    <div class="col-md-8 d-flex flex-wrap gap-2 justify-content-md-end">
+      <button type="submit" class="btn btn-dark">
+        <i class="bi bi-funnel me-1"></i> Aplicar
+      </button>
+      <a href="{{ url_for('ventas.reporte_mensual') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-counterclockwise me-1"></i> Ver todo
+      </a>
+      <a href="{{ url_for('ventas.reporte_mensual_csv', mes=filtro_mes) }}"
+         class="btn btn-outline-success">
+        <i class="bi bi-filetype-csv me-1"></i> CSV
+      </a>
+      <a href="{{ url_for('ventas.reporte_mensual_excel', mes=filtro_mes) }}"
+         class="btn btn-success">
+        <i class="bi bi-file-earmark-excel me-1"></i> Excel
+      </a>
     </div>
+  </form>
+</div>
 
-    <!-- Tabla Agrupada por Mes -->
-    <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-dark text-uppercase fs-7">
-                        <tr>
-                            <th class="py-3 ps-3">Año / Mes</th>
-                            <th class="py-3">SKU</th>
-                            <th class="py-3">Producto</th>
-                            <th class="py-3 text-center">Cantidad Vendida</th>
-                            <th class="py-3 text-end pe-3">Total Generado</th>
-                        </tr>
+<!-- KPIs resumen -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-md-4">
+    <div class="kpi">
+      <div class="kpi-icon primary"><i class="bi bi-receipt"></i></div>
+      <div class="kpi-label">Tickets</div>
+      <div class="kpi-value">{{ total_tickets }}</div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="kpi">
+      <div class="kpi-icon success"><i class="bi bi-currency-dollar"></i></div>
+      <div class="kpi-label">Ingresos totales</div>
+      <div class="kpi-value">${{ "%.2f"|format(total_ingresos) }}</div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="kpi">
+      <div class="kpi-icon warning"><i class="bi bi-graph-up-arrow"></i></div>
+      <div class="kpi-label">Ganancia estimada</div>
+      <div class="kpi-value">${{ "%.2f"|format(total_ganancia) }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Tickets agrupados por periodo -->
+{% if periodos %}
+  {% for periodo, tickets in periodos.items() %}
+    <div class="cl-panel mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="cl-panel-title mb-0">
+          <i class="bi bi-calendar-alt text-primary me-2"></i> Periodo: {{ periodo }}
+        </div>
+        <span class="badge bg-primary-subtle text-primary-emphasis">
+          {{ tickets|length }} ticket{{ 's' if tickets|length != 1 else '' }}
+        </span>
+      </div>
+
+      <div class="accordion" id="acc-{{ periodo }}">
+        {% for t in tickets %}
+          <div class="accordion-item mb-2 border rounded-3 overflow-hidden">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed px-3 py-2" type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#tk-{{ t.folio|replace('.','_')|replace('/','_') }}">
+                <div class="d-flex flex-wrap align-items-center w-100 gap-3 pe-3">
+                  <span class="badge bg-dark">#{{ t.folio }}</span>
+                  <span class="small text-muted">
+                    <i class="bi bi-calendar3 me-1"></i>
+                    {{ t.fecha.strftime('%d/%m/%Y') if t.fecha else '—' }}
+                  </span>
+                  <span class="small">
+                    <i class="bi bi-person me-1"></i> {{ t.cliente }}
+                  </span>
+                  <span class="badge bg-info-subtle text-info-emphasis">{{ t.canal }}</span>
+                  <span class="badge
+                    {% if t.estatus == 'COMPLETADA' %}bg-success-subtle text-success-emphasis
+                    {% elif t.estatus == 'CANCELADA' %}bg-danger-subtle text-danger-emphasis
+                    {% else %}bg-secondary-subtle text-secondary-emphasis{% endif %}">
+                    {{ t.estatus }}
+                  </span>
+                  <span class="ms-auto fw-bold text-success">${{ "%.2f"|format(t.total) }}</span>
+                </div>
+              </button>
+            </h2>
+            <div id="tk-{{ t.folio|replace('.','_')|replace('/','_') }}"
+                 class="accordion-collapse collapse"
+                 data-bs-parent="#acc-{{ periodo }}">
+              <div class="accordion-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-sm mb-0 align-middle">
+                    <thead class="table-light">
+                      <tr>
+                        <th class="ps-3">SKU</th>
+                        <th>Producto</th>
+                        <th class="text-center">Cant.</th>
+                        <th class="text-end">P. Unit.</th>
+                        <th class="text-end">Costo Unit.</th>
+                        <th class="text-end">Subtotal</th>
+                        <th class="text-end pe-3">Ganancia</th>
+                      </tr>
                     </thead>
                     <tbody>
-                        {% set ns = namespace(current_period="") %}
-                        {% for row in resultados %}
-                            {% set period_key = row.anio ~ '-' ~ "%02d"|format(row.mes|int) %}
-                            
-                            <!-- Separador visual o indicador de cambio de mes -->
-                            {% if ns.current_period != period_key %}
-                                {% set ns.current_period = period_key %}
-                                <tr class="table-secondary fw-bold">
-                                    <td colspan="5" class="ps-3 text-dark">
-                                        <i class="fas fa-calendar-alt me-2 text-primary"></i> Periodo: {{ period_key }}
-                                    </td>
-                                </tr>
-                            {% endif %}
-                            
-                            <tr>
-                                <td class="ps-3 text-muted small">{{ period_key }}</td>
-                                <td><span class="badge bg-light text-dark border">{{ row.sku or 'N/A' }}</span></td>
-                                <td class="fw-semibold text-dark">{{ row.nombre }}</td>
-                                <td class="text-center fw-bold text-primary">{{ row.total_cantidad }}</td>
-                                <td class="text-end fw-bold text-success pe-3">${{ "%.2f"|format(row.total_dinero) }}</td>
-                            </tr>
-                        {% else %}
+                      {% for d in t.detalles %}
                         <tr>
-                            <td colspan="5" class="text-center py-4 text-muted">
-                                No hay registros de ventas para mostrar.
-                            </td>
+                          <td class="ps-3">
+                            <span class="badge bg-light text-dark border">{{ d.sku }}</span>
+                          </td>
+                          <td class="fw-semibold">{{ d.nombre }}</td>
+                          <td class="text-center">{{ d.cantidad }}</td>
+                          <td class="text-end">${{ "%.2f"|format(d.precio_unitario) }}</td>
+                          <td class="text-end text-muted">${{ "%.2f"|format(d.costo_unitario) }}</td>
+                          <td class="text-end fw-semibold">${{ "%.2f"|format(d.subtotal) }}</td>
+                          <td class="text-end pe-3
+                            {% if d.ganancia_linea >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            ${{ "%.2f"|format(d.ganancia_linea) }}
+                          </td>
                         </tr>
-                        {% endfor %}
+                      {% endfor %}
                     </tbody>
-                </table>
+                    <tfoot class="table-light">
+                      <tr>
+                        <td colspan="5" class="text-end fw-semibold ps-3">Subtotal:</td>
+                        <td class="text-end fw-semibold">${{ "%.2f"|format(t.subtotal) }}</td>
+                        <td></td>
+                      </tr>
+                      {% if t.descuento > 0 %}
+                      <tr>
+                        <td colspan="5" class="text-end fw-semibold ps-3">Descuento:</td>
+                        <td class="text-end text-danger">-${{ "%.2f"|format(t.descuento) }}</td>
+                        <td></td>
+                      </tr>
+                      {% endif %}
+                      <tr>
+                        <td colspan="5" class="text-end fw-bold ps-3">Total ticket:</td>
+                        <td class="text-end fw-bold text-success">${{ "%.2f"|format(t.total) }}</td>
+                        <td class="text-end pe-3 fw-bold
+                          {% if t.ganancia >= 0 %}text-success{% else %}text-danger{% endif %}">
+                          ${{ "%.2f"|format(t.ganancia) }}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td colspan="5" class="text-end text-muted small ps-3">Costo total:</td>
+                        <td colspan="2" class="text-end text-muted small pe-3">
+                          ${{ "%.2f"|format(t.total_costo) }}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
             </div>
-        </div>
+          </div>
+        {% endfor %}
+      </div>
     </div>
-</div>
+  {% endfor %}
+{% else %}
+  <div class="cl-panel text-center py-5">
+    <i class="bi bi-inbox text-muted" style="font-size:3rem"></i>
+    <p class="text-muted mt-3 mb-0">No hay tickets para el periodo seleccionado.</p>
+  </div>
+{% endif %}
+
 {% endblock %}
