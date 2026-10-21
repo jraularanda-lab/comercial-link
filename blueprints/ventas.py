@@ -22,14 +22,6 @@ ventas_bp = Blueprint('ventas', __name__, url_prefix='/ventas')
 def _construir_reporte(filtro_mes):
     """
     Devuelve (tickets_flat, totales_dict) para reutilizar en vistas y exports.
-
-    tickets_flat: lista de dicts, uno por venta/ticket
-    totales_dict: {
-        'periodos': { 'YYYY-MM': [tickets...] },
-        'total_ingresos': float,
-        'total_ganancia': float,
-        'total_tickets': int,
-    }
     """
     query = Venta.query.order_by(Venta.fecha.desc(), Venta.id.desc())
 
@@ -105,6 +97,7 @@ def _construir_reporte(filtro_mes):
             'cliente': v.cliente.nombre if v.cliente else 'Público general',
             'canal': v.canal or '—',
             'estatus': v.estatus or '—',
+            'facturada': bool(v.facturada), # ✅ NUEVO
             'subtotal': float(v.subtotal or 0),
             'descuento': float(v.descuento or 0),
             'total': total,
@@ -186,6 +179,9 @@ def nueva():
         canal = request.form.get('canal')
         id_cliente = request.form.get('id_cliente')
         fecha_str = request.form.get('fecha')
+        
+        # ✅ NUEVO: Capturamos el checkbox. Si viene "1", es True.
+        facturada = request.form.get('facturada') == '1'
 
         fecha_venta = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else datetime.utcnow().date()
 
@@ -228,7 +224,8 @@ def nueva():
             total=total_venta,
             subtotal=total_venta,
             descuento=0.0,
-            estatus='COMPLETADA'
+            estatus='COMPLETADA',
+            facturada=facturada # ✅ NUEVO
         )
         db.session.add(nueva_venta)
         db.session.commit()
@@ -274,6 +271,9 @@ def editar(id):
         canal = request.form.get('canal')
         id_cliente = request.form.get('id_cliente')
         fecha_str = request.form.get('fecha')
+        
+        # ✅ NUEVO: Capturamos el checkbox al editar
+        venta.facturada = request.form.get('facturada') == '1'
 
         if fecha_str:
             try:
@@ -416,7 +416,7 @@ def reporte_mensual_csv():
     writer = csv.writer(output)
 
     writer.writerow([
-        'Periodo', 'Folio', 'Fecha', 'Cliente', 'Canal', 'Estatus',
+        'Periodo', 'Folio', 'Fecha', 'Cliente', 'Canal', 'Estatus', 'Facturada', # ✅ NUEVO
         'SKU', 'Producto', 'Cantidad', 'Precio Unitario',
         'Costo Unitario', 'Subtotal', 'Ganancia Línea',
         'Total Ticket', 'Costo Ticket', 'Ganancia Ticket'
@@ -433,6 +433,7 @@ def reporte_mensual_csv():
                     t['cliente'],
                     t['canal'],
                     t['estatus'],
+                    'SÍ' if t['facturada'] else 'NO', # ✅ NUEVO
                     d['sku'],
                     d['nombre'],
                     d['cantidad'],
@@ -519,7 +520,7 @@ def reporte_mensual_excel():
     ws = wb.create_sheet("Detalle")
 
     headers = [
-        'Periodo', 'Folio', 'Fecha', 'Cliente', 'Canal', 'Estatus',
+        'Periodo', 'Folio', 'Fecha', 'Cliente', 'Canal', 'Estatus', 'Facturada', # ✅ NUEVO
         'SKU', 'Producto', 'Cantidad', 'P. Unit.', 'Costo Unit.',
         'Subtotal', 'Ganancia', 'Total Ticket'
     ]
@@ -539,6 +540,7 @@ def reporte_mensual_excel():
             for d in t['detalles']:
                 datos = [
                     periodo, t['folio'], fecha_str, t['cliente'], t['canal'], t['estatus'],
+                    'SÍ' if t['facturada'] else 'NO', # ✅ NUEVO
                     d['sku'], d['nombre'], d['cantidad'],
                     d['precio_unitario'], d['costo_unitario'],
                     d['subtotal'], d['ganancia_linea'], t['total']
@@ -546,10 +548,10 @@ def reporte_mensual_excel():
                 for col, val in enumerate(datos, 1):
                     cell = ws.cell(row=fila, column=col, value=val)
                     cell.border = border
-                    if col in (10, 11, 12, 13, 14):  # monetarias
+                    if col in (11, 12, 13, 14, 15):  # monetarias
                         cell.number_format = money_format
                         cell.alignment = right
-                    elif col == 9:  # cantidad
+                    elif col == 10:  # cantidad
                         cell.alignment = center
                 fila += 1
 

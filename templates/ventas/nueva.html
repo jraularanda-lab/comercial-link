@@ -27,7 +27,6 @@
 
                         <div class="mb-3">
                             <label class="form-label">Fecha de Venta</label>
-                            <!-- Modificado a type="date" manteniendo la fecha del día por defecto -->
                             <input type="date" class="form-control" id="fecha" name="fecha" value="{{ fecha_hoy }}" required>
                         </div>
 
@@ -62,7 +61,16 @@
                         </div>
 
                         <hr>
-                        <div class="d-grid">
+                        
+                        <!-- ✅ NUEVO: Checkbox de Facturada -->
+                        <div class="mb-3 form-check">
+                            <input class="form-check-input" type="checkbox" name="facturada" id="facturada" value="1">
+                            <label class="form-check-label" for="facturada">
+                                ¿Esta venta se facturó?
+                            </label>
+                        </div>
+                        
+                        <div class="d-grid mt-3">
                             <button type="submit" class="btn btn-primary btn-lg">Completar Venta</button>
                         </div>
                     </div>

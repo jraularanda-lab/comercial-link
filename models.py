@@ -172,6 +172,7 @@ class Venta(db.Model):
     estatus = db.Column(db.String(30), nullable=False, default='COMPLETADA')
     id_usuario = db.Column(db.BigInteger, nullable=True)
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
+    facturada = db.Column(db.Boolean, default=False)  # ✅ NUEVO CAMPO
 
     detalles = db.relationship(
         'VentaDetalle',
@@ -192,7 +193,6 @@ class VentaDetalle(db.Model):
     precio_unitario = db.Column(db.Numeric(12, 2), nullable=False)
     costo_unitario = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
     descuento = db.Column(db.Numeric(12, 2), nullable=True, default=0.0)
-    # Las relaciones producto y venta se crean vía backref arriba
 
 
 class Compra(db.Model):

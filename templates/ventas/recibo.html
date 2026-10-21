@@ -24,6 +24,22 @@
             </small>
         </div>
 
+        <!-- ✅ NUEVO: Folio y Estado de Facturación -->
+        <div class="d-flex justify-content-between align-items-center my-2" style="font-size: 14px;">
+            <div>
+                <strong>Folio:</strong> <span class="fw-bold">{{ venta.folio }}</span>
+            </div>
+            <div>
+                <strong>Estado Fiscal:</strong>
+                {% if venta.facturada %}
+                    <span class="badge" style="background-color: #28a745; font-size: 12px;">FACTURADA</span>
+                {% else %}
+                    <span class="badge" style="background-color: #6c757d; font-size: 12px;">NO FACTURADA</span>
+                {% endif %}
+            </div>
+        </div>
+        <!-- Fin Folio y Estado -->
+
         <h4 class="text-center fw-bold my-2" style="letter-spacing: 4px; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 0;">R E C I B O</h4>
 
         <!-- Fecha -->
@@ -67,7 +83,6 @@
             <tbody>
                 {% for d in detalles %}
                 <tr>
-                    <!-- Corregido de d.producto.sku a d.producto.codigo según models.py -->
                     <td class="text-center fw-bold">{{ d.producto.codigo }}</td>
                     <td class="text-center">{{ d.cantidad }}</td>
                     <td>{{ d.producto.nombre }}</td>
