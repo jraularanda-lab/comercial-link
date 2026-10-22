@@ -97,7 +97,7 @@ def _construir_reporte(filtro_mes):
             'cliente': v.cliente.nombre if v.cliente else 'Público general',
             'canal': v.canal or '—',
             'estatus': v.estatus or '—',
-            'facturada': bool(v.facturada), # ✅ NUEVO
+            'facturada': bool(v.facturada),
             'subtotal': float(v.subtotal or 0),
             'descuento': float(v.descuento or 0),
             'total': total,
@@ -180,7 +180,6 @@ def nueva():
         id_cliente = request.form.get('id_cliente')
         fecha_str = request.form.get('fecha')
         
-        # ✅ NUEVO: Capturamos el checkbox. Si viene "1", es True.
         facturada = request.form.get('facturada') == '1'
 
         fecha_venta = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else datetime.utcnow().date()
@@ -225,7 +224,7 @@ def nueva():
             subtotal=total_venta,
             descuento=0.0,
             estatus='COMPLETADA',
-            facturada=facturada # ✅ NUEVO
+            facturada=facturada
         )
         db.session.add(nueva_venta)
         db.session.commit()
@@ -272,7 +271,6 @@ def editar(id):
         id_cliente = request.form.get('id_cliente')
         fecha_str = request.form.get('fecha')
         
-        # ✅ NUEVO: Capturamos el checkbox al editar
         venta.facturada = request.form.get('facturada') == '1'
 
         if fecha_str:
@@ -286,7 +284,6 @@ def editar(id):
 
         venta.id_cliente = int(id_cliente) if id_cliente else None
 
-        # Reintegrar inventario anterior
         detalles_actuales = VentaDetalle.query.filter_by(id_venta=venta.id).all()
         for det_viejo in detalles_actuales:
             inv = Inventario.query.filter_by(id_producto=det_viejo.id_producto, id_ubicacion=1).first()
@@ -386,6 +383,39 @@ def recibo(id_venta):
 
 
 # =====================================================================
+# ✅ NUEVA RUTA: Registrar Devolución
+# =====================================================================
+@ventas_bp.route('/devolucion/<int:id_venta>', methods=['POST'])
+def registrar_devolucion(id_venta):
+    venta = Venta.query.get_or_404(id_venta)
+
+    if venta.devuelta:
+        flash('Esta venta ya fue marcada como devuelta anteriormente.', 'warning')
+        return redirect(url_for('ventas.recibo', id_venta=venta.id))
+
+    try:
+        # 1. Reintegrar inventario
+        detalles = VentaDetalle.query.filter_by(id_venta=venta.id).all()
+        for detalle in detalles:
+            inv = Inventario.query.filter_by(id_producto=detalle.id_producto, id_ubicacion=1).first()
+            if inv:
+                inv.existencia += detalle.cantidad
+
+        # 2. Marcar la venta como devuelta
+        venta.devuelta = True
+        venta.estatus = 'DEVUELTA'
+        
+        db.session.commit()
+        flash('✅ Devolución registrada. El inventario ha sido reintegrado.', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al procesar la devolución: {str(e)}', 'danger')
+
+    return redirect(url_for('ventas.recibo', id_venta=venta.id))
+
+
+# =====================================================================
 # REPORTE MENSUAL (vista HTML)
 # =====================================================================
 @ventas_bp.route('/reporte-mensual')
@@ -416,7 +446,7 @@ def reporte_mensual_csv():
     writer = csv.writer(output)
 
     writer.writerow([
-        'Periodo', 'Folio', 'Fecha', 'Cliente', 'Canal', 'Estatus', 'Facturada', # ✅ NUEVO
+        'Periodo', 'Folio', 'Fecha', 'Cliente', 'Canal', 'Estatus', 'Facturada',
         'SKU', 'Producto', 'Cantidad', 'Precio Unitario',
         'Costo Unitario', 'Subtotal', 'Ganancia Línea',
         'Total Ticket', 'Costo Ticket', 'Ganancia Ticket'
@@ -433,7 +463,7 @@ def reporte_mensual_csv():
                     t['cliente'],
                     t['canal'],
                     t['estatus'],
-                    'SÍ' if t['facturada'] else 'NO', # ✅ NUEVO
+                    'SÍ' if t['facturada'] else 'NO',
                     d['sku'],
                     d['nombre'],
                     d['cantidad'],
@@ -520,7 +550,7 @@ def reporte_mensual_excel():
     ws = wb.create_sheet("Detalle")
 
     headers = [
-        'Periodo', 'Folio', 'Fecha', 'Cliente', 'Canal', 'Estatus', 'Facturada', # ✅ NUEVO
+        'Periodo', 'Folio', 'Fecha', 'Cliente', 'Canal', 'Estatus', 'Facturada',
         'SKU', 'Producto', 'Cantidad', 'P. Unit.', 'Costo Unit.',
         'Subtotal', 'Ganancia', 'Total Ticket'
     ]
@@ -540,7 +570,7 @@ def reporte_mensual_excel():
             for d in t['detalles']:
                 datos = [
                     periodo, t['folio'], fecha_str, t['cliente'], t['canal'], t['estatus'],
-                    'SÍ' if t['facturada'] else 'NO', # ✅ NUEVO
+                    'SÍ' if t['facturada'] else 'NO',
                     d['sku'], d['nombre'], d['cantidad'],
                     d['precio_unitario'], d['costo_unitario'],
                     d['subtotal'], d['ganancia_linea'], t['total']
