@@ -62,7 +62,7 @@
                             <th class="py-3">Cliente</th>
                             <th class="py-3 text-center">Canal</th>
                             <th class="py-3 text-end">Total</th>
-                            <th class="py-3 text-center">Factura</th> <!-- ✅ NUEVO ENCABEZADO -->
+                            <th class="py-3 text-center">Factura / Estado</th>
                             <th class="py-3 text-center pe-3">Acciones</th>
                         </tr>
                     </thead>
@@ -83,8 +83,12 @@
                             </td>
                             <td class="text-end fw-bold text-success">${{ "%.2f"|format(v.total) }}</td>
                             
-                            <!-- ✅ NUEVA CELDA DE FACTURACIÓN -->
+                            <!-- ✅ CELDA DE FACTURACIÓN Y DEVOLUCIÓN -->
                             <td class="text-center">
+                                {% if v.devuelta %}
+                                    <span class="badge bg-danger px-2 py-1 d-block mb-1"><i class="fas fa-undo me-1"></i> Devuelta</span>
+                                {% endif %}
+                                
                                 {% if v.facturada %}
                                     <span class="badge bg-success px-2 py-1"><i class="fas fa-check-circle me-1"></i> Facturada</span>
                                 {% else %}
@@ -103,7 +107,7 @@
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="7" class="text-center py-4 text-muted"> <!-- ✅ Cambiado a 7 columnas -->
+                            <td colspan="7" class="text-center py-4 text-muted">
                                 No se encontraron ventas con los filtros seleccionados.
                             </td>
                         </tr>
