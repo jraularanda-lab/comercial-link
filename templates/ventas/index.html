@@ -83,10 +83,12 @@
                             </td>
                             <td class="text-end fw-bold text-success">${{ "%.2f"|format(v.total) }}</td>
                             
-                            <!-- ✅ CELDA DE FACTURACIÓN Y DEVOLUCIÓN -->
+                            <!-- ✅ CELDA DE FACTURACIÓN Y DEVOLUCIÓN CON MOTIVO EN TOOLTIP -->
                             <td class="text-center">
                                 {% if v.devuelta %}
-                                    <span class="badge bg-danger px-2 py-1 d-block mb-1"><i class="fas fa-undo me-1"></i> Devuelta</span>
+                                    <span class="badge bg-danger px-2 py-1 d-block mb-1" title="Motivo: {{ v.motivo_devolucion or 'No especificado' }}">
+                                        <i class="fas fa-undo me-1"></i> Devuelta
+                                    </span>
                                 {% endif %}
                                 
                                 {% if v.facturada %}

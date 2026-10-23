@@ -393,17 +393,19 @@ def registrar_devolucion(id_venta):
         flash('Esta venta ya fue marcada como devuelta anteriormente.', 'warning')
         return redirect(url_for('ventas.recibo', id_venta=venta.id))
 
+    # ✅ NUEVO: Capturamos el motivo del formulario
+    motivo = request.form.get('motivo_devolucion', 'Sin motivo especificado')
+
     try:
-        # 1. Reintegrar inventario
         detalles = VentaDetalle.query.filter_by(id_venta=venta.id).all()
         for detalle in detalles:
             inv = Inventario.query.filter_by(id_producto=detalle.id_producto, id_ubicacion=1).first()
             if inv:
                 inv.existencia += detalle.cantidad
 
-        # 2. Marcar la venta como devuelta
         venta.devuelta = True
         venta.estatus = 'DEVUELTA'
+        venta.motivo_devolucion = motivo  # ✅ NUEVO
         
         db.session.commit()
         flash('✅ Devolución registrada. El inventario ha sido reintegrado.', 'success')
@@ -438,7 +440,6 @@ def reporte_mensual():
 # =====================================================================
 @ventas_bp.route('/reporte-mensual/exportar/csv')
 def reporte_mensual_csv():
-    """Exporta el reporte mensual a CSV (una fila por línea de producto)."""
     filtro_mes = request.args.get('mes', '')
     _, totales = _construir_reporte(filtro_mes)
 
@@ -477,7 +478,7 @@ def reporte_mensual_csv():
                 ])
 
     nombre = f"reporte_mensual_{filtro_mes or 'todos'}.csv"
-    csv_data = '\ufeff' + output.getvalue()  # BOM para Excel + UTF-8
+    csv_data = '\ufeff' + output.getvalue()
 
     return Response(
         csv_data,
@@ -491,13 +492,11 @@ def reporte_mensual_csv():
 # =====================================================================
 @ventas_bp.route('/reporte-mensual/exportar/excel')
 def reporte_mensual_excel():
-    """Exporta el reporte mensual a Excel con formato profesional."""
     filtro_mes = request.args.get('mes', '')
     _, totales = _construir_reporte(filtro_mes)
 
     wb = Workbook()
 
-    # ---- Estilos compartidos ----
     titulo_font = Font(bold=True, size=14, color="FFFFFF")
     titulo_fill = PatternFill("solid", fgColor="4F46E5")
     header_font = Font(bold=True, color="FFFFFF")
@@ -513,9 +512,6 @@ def reporte_mensual_excel():
     right = Alignment(horizontal='right', vertical='center')
     money_format = '"$"#,##0.00'
 
-    # =================================================================
-    # HOJA 1: RESUMEN GENERAL
-    # =================================================================
     ws_resumen = wb.active
     ws_resumen.title = "Resumen"
 
@@ -544,9 +540,6 @@ def reporte_mensual_excel():
     ws_resumen.column_dimensions['A'].width = 22
     ws_resumen.column_dimensions['B'].width = 18
 
-    # =================================================================
-    # HOJA 2: DETALLE POR TICKET
-    # =================================================================
     ws = wb.create_sheet("Detalle")
 
     headers = [
@@ -578,16 +571,15 @@ def reporte_mensual_excel():
                 for col, val in enumerate(datos, 1):
                     cell = ws.cell(row=fila, column=col, value=val)
                     cell.border = border
-                    if col in (11, 12, 13, 14, 15):  # monetarias
+                    if col in (11, 12, 13, 14, 15):
                         cell.number_format = money_format
                         cell.alignment = right
-                    elif col == 10:  # cantidad
+                    elif col == 10:
                         cell.alignment = center
                 fila += 1
 
     ws.freeze_panes = "A2"
 
-    # Auto-ancho
     for col_idx, header in enumerate(headers, 1):
         max_len = len(str(header))
         for row_idx in range(2, fila):
@@ -596,9 +588,6 @@ def reporte_mensual_excel():
                 max_len = max(max_len, len(str(val)))
         ws.column_dimensions[get_column_letter(col_idx)].width = min(max_len + 3, 40)
 
-    # =================================================================
-    # HOJA 3: POR PERIODO
-    # =================================================================
     ws_per = wb.create_sheet("Por Periodo")
     headers_per = ['Periodo', 'Tickets', 'Ingresos', 'Ganancia']
 
@@ -629,9 +618,6 @@ def reporte_mensual_excel():
     for col_idx, header in enumerate(headers_per, 1):
         ws_per.column_dimensions[get_column_letter(col_idx)].width = max(len(header) + 4, 15)
 
-    # =================================================================
-    # GUARDAR EN MEMORIA Y DEVOLVER
-    # =================================================================
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)

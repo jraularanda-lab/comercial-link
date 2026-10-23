@@ -172,8 +172,9 @@ class Venta(db.Model):
     estatus = db.Column(db.String(30), nullable=False, default='COMPLETADA')
     id_usuario = db.Column(db.BigInteger, nullable=True)
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
-    facturada = db.Column(db.Boolean, default=False)  # ✅ CAMPO FACTURADA
-    devuelta = db.Column(db.Boolean, default=False)   # ✅ NUEVO CAMPO DEVUELTA
+    facturada = db.Column(db.Boolean, default=False)
+    devuelta = db.Column(db.Boolean, default=False)
+    motivo_devolucion = db.Column(db.String(255), nullable=True) # ✅ NUEVO CAMPO
 
     detalles = db.relationship(
         'VentaDetalle',
