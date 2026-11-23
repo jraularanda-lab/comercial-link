@@ -13,11 +13,15 @@ def index():
         ubicaciones = Ubicacion.query.all() if hasattr(Ubicacion, 'query') else []
         productos_dropdown = Producto.query.filter_by(activo=True).all()
         
-        # Consulta SQL directa para asegurar que leemos las existencias reales
+        # Consulta SQL mejorada: Agrupamos por SKU para evitar filas duplicadas
         stock_results = db.session.execute(text("""
-            SELECT p.id, p.sku, p.nombre, COALESCE(i.existencia, 0) AS stock_actual
+            SELECT 
+                p.sku, 
+                MAX(p.nombre) AS nombre, 
+                SUM(COALESCE(i.existencia, 0)) AS stock_actual
             FROM productos p
             LEFT JOIN inventarios i ON p.id = i.id_producto
+            GROUP BY p.sku
         """)).fetchall()
 
     except Exception as e:
@@ -27,7 +31,6 @@ def index():
         flash(f"Error al cargar inventario: {str(e)}", "danger")
 
     return render_template('inventario/index.html', productos=productos_dropdown, stock_results=stock_results, ubicaciones=ubicaciones)
-
 
 @inventario_bp.route('/guardar', methods=['POST'])
 @login_required
