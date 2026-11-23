@@ -32,21 +32,29 @@ def index():
 @inventario_bp.route('/guardar', methods=['POST'])
 @login_required
 def guardar_inicial():
-    """Agrega o actualiza el inventario inicial."""
+    """Agrega o actualiza el inventario sumando la nueva cantidad."""
     try:
         producto_id = int(request.form.get('id_producto') or request.form.get('producto_id'))
         cantidad = int(request.form.get('cantidad', 0))
         ubicacion_id = int(request.form.get('id_ubicacion') or 1)
 
+        # Validación: Evitar ingresos de 0 o negativos
+        if cantidad <= 0:
+            flash('⚠️ La cantidad a ingresar debe ser mayor a 0.', 'warning')
+            return redirect(url_for('inventario.index'))
+
+        # CORRECCIÓN AQUÍ: Cambiamos 'existencia = :cant' por 'existencia = existencia + :cant'
+        # Esto suma lo nuevo a lo que ya había en la base de datos.
         query = text("""
             INSERT INTO inventarios (id_producto, id_ubicacion, existencia, apartado) 
             VALUES (:prod_id, :ubic_id, :cant, 0)
-            ON DUPLICATE KEY UPDATE existencia = :cant
+            ON DUPLICATE KEY UPDATE existencia = existencia + :cant
         """)
+        
         db.session.execute(query, {'prod_id': producto_id, 'ubic_id': ubicacion_id, 'cant': cantidad})
         db.session.commit()
         
-        flash('✅ Inventario actualizado correctamente.', 'success')
+        flash(f'✅ Se ingresaron {cantidad} unidades correctamente al inventario.', 'success')
 
     except Exception as e:
         db.session.rollback()
