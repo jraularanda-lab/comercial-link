@@ -12,19 +12,28 @@ def index():
     """Muestra la lista de inventario uniendo productos y existencias directamente."""
     try:
         ubicaciones = Ubicacion.query.all() if hasattr(Ubicacion, 'query') else []
-        productos_dropdown = Producto.query.filter_by(activo=True).all()
         
-        # Agregamos la fecha a la consulta. Usamos MAX() para que si hay duplicados, tome la fecha más reciente.
-        stock_results = db.session.execute(text("""
+        # Consulta ÚNICA para la tabla y el desplegable
+        # Usamos GROUP BY p.id para agrupar si un producto está en varias ubicaciones
+        query = text("""
             SELECT 
+                p.id,
                 p.sku, 
-                MAX(p.nombre) AS nombre, 
+                p.nombre, 
                 SUM(COALESCE(i.existencia, 0)) AS stock_actual,
                 MAX(i.fecha_actualizacion) AS ultima_actualizacion
             FROM productos p
             LEFT JOIN inventarios i ON p.id = i.id_producto
-            GROUP BY p.sku
-        """)).fetchall()
+            WHERE p.activo = 1
+            GROUP BY p.id, p.sku, p.nombre
+            ORDER BY p.nombre ASC
+        """)
+        
+        resultados = db.session.execute(query).fetchall()
+        
+        # Pasamos los mismos resultados al desplegable y a la tabla
+        productos_dropdown = resultados
+        stock_results = resultados
 
     except Exception as e:
         productos_dropdown = []
@@ -33,8 +42,6 @@ def index():
         flash(f"Error al cargar inventario: {str(e)}", "danger")
 
     return render_template('inventario/index.html', productos=productos_dropdown, stock_results=stock_results, ubicaciones=ubicaciones)
-
-
 @inventario_bp.route('/guardar', methods=['POST'])
 @login_required
 def guardar_inicial():
