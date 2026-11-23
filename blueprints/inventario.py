@@ -9,39 +9,57 @@ inventario_bp = Blueprint('inventario', __name__, url_prefix='/inventario')
 @inventario_bp.route('/', methods=['GET'])
 @login_required
 def index():
-    """Muestra la lista de inventario uniendo productos y existencias directamente."""
+    """Muestra la lista de inventario uniendo productos y existencias."""
     try:
         ubicaciones = Ubicacion.query.all() if hasattr(Ubicacion, 'query') else []
         
-        # Consulta ÚNICA para la tabla y el desplegable
-        # Usamos GROUP BY p.id para agrupar si un producto está en varias ubicaciones
-        query = text("""
-            SELECT 
-                p.id,
-                p.sku, 
-                p.nombre, 
-                SUM(COALESCE(i.existencia, 0)) AS stock_actual,
-                MAX(i.fecha_actualizacion) AS ultima_actualizacion
-            FROM productos p
-            LEFT JOIN inventarios i ON p.id = i.id_producto
-            WHERE p.activo = 1
-            GROUP BY p.id, p.sku, p.nombre
-            ORDER BY p.nombre ASC
-        """)
+        # 1. Traemos todos los productos activos
+        productos_db = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
         
-        resultados = db.session.execute(query).fetchall()
+        # 2. Traemos todo el inventario
+        inventarios_db = db.session.execute(text("SELECT id_producto, existencia, fecha_actualizacion FROM inventarios")).fetchall()
         
-        # Pasamos los mismos resultados al desplegable y a la tabla
-        productos_dropdown = resultados
-        stock_results = resultados
+        # 3. Creamos un diccionario para agrupar el stock por ID de producto
+        stock_por_producto = {}
+        fecha_por_producto = {}
+        
+        for inv in inventarios_db:
+            p_id = inv[0]
+            cant = inv[1] or 0
+            fecha = inv[2]
+            
+            # Sumamos las cantidades si el producto está en varias ubicaciones
+            stock_por_producto[p_id] = stock_por_producto.get(p_id, 0) + cant
+            
+            # Guardamos la fecha más reciente
+            if fecha:
+                if p_id not in fecha_por_producto or fecha > fecha_por_producto[p_id]:
+                    fecha_por_producto[p_id] = fecha
+
+        # 4. Armamos la lista final mezclando Producto con su Stock
+        stock_results = []
+        for p in productos_db:
+            stock_actual = stock_por_producto.get(p.id, 0)
+            ultima_fecha = fecha_por_producto.get(p.id, None)
+            
+            stock_results.append({
+                'id': p.id,
+                'sku': p.sku,
+                'nombre': p.nombre,
+                'stock_actual': stock_actual,
+                'ultima_actualizacion': ultima_fecha
+            })
 
     except Exception as e:
         productos_dropdown = []
         ubicaciones = []
         stock_results = []
         flash(f"Error al cargar inventario: {str(e)}", "danger")
+        print("Error Index:", e)
 
-    return render_template('inventario/index.html', productos=productos_dropdown, stock_results=stock_results, ubicaciones=ubicaciones)
+    # Pasamos la misma lista a la tabla y al desplegable
+    return render_template('inventario/index.html', productos=stock_results, stock_results=stock_results, ubicaciones=ubicaciones)
+
 @inventario_bp.route('/guardar', methods=['POST'])
 @login_required
 def guardar_inicial():

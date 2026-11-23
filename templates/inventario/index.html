@@ -19,15 +19,14 @@
                             <select class="form-select" id="id_producto" name="id_producto" required>
                                 <option value="">-- Seleccionar Producto --</option>
                                 {% for p in productos %}
-                                    <!-- Agregamos el stock actual entre paréntesis para referencia visual -->
-                                    <option value="{{ p.id }}">{{ p.sku }} - {{ p.nombre }} (Stock: {{ p.stock_actual|default(0) }})</option>
+                                    <!-- Quitamos el default(0) ya que Python ya nos entrega el dato exacto -->
+                                    <option value="{{ p.id }}">{{ p.sku }} - {{ p.nombre }} (Stock: {{ p.stock_actual }})</option>
                                 {% endfor %}
                             </select>
                         </div>
 
                         <div class="mb-3">
                             <label for="cantidad" class="form-label font-weight-bold">Cantidad a Ingresar</label>
-                            <!-- Cambiamos min a 1 y quitamos el value=0 para obligar a escribir -->
                             <input type="number" class="form-control" id="cantidad" name="cantidad" min="1" placeholder="Ej: 10" required>
                         </div>
 
