@@ -63,6 +63,7 @@
                                     <th>SKU</th>
                                     <th>Producto</th>
                                     <th class="text-center">Stock Actual</th>
+                                    <th class="text-center">Último Ingreso</th> <!-- Nueva Columna -->
                                     <th class="text-center">Estado</th>
                                 </tr>
                             </thead>
@@ -76,6 +77,14 @@
                                             {{ row.stock_actual }} pzas
                                         </span>
                                     </td>
+                                    <td class="text-center text-muted">
+                                        <!-- Mostramos la fecha formateada, si no hay fecha mostramos un guion -->
+                                        {% if row.ultima_actualizacion %}
+                                            {{ row.ultima_actualizacion.strftime('%d/%m/%Y %H:%M') }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
                                     <td class="text-center">
                                         {% if row.stock_actual > 0 %}
                                             <span class="text-success"><i class="fas fa-check-circle"></i> Disponible</span>
@@ -86,7 +95,7 @@
                                 </tr>
                                 {% else %}
                                 <tr>
-                                    <td colspan="4" class="text-center text-muted">No hay registros de inventario.</td>
+                                    <td colspan="5" class="text-center text-muted">No hay registros de inventario.</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

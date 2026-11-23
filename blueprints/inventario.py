@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 from models import db, Producto, Ubicacion
 from sqlalchemy import text
+from datetime import datetime # Importamos datetime para la fecha
 
 inventario_bp = Blueprint('inventario', __name__, url_prefix='/inventario')
 
@@ -13,12 +14,13 @@ def index():
         ubicaciones = Ubicacion.query.all() if hasattr(Ubicacion, 'query') else []
         productos_dropdown = Producto.query.filter_by(activo=True).all()
         
-        # Consulta SQL mejorada: Agrupamos por SKU para evitar filas duplicadas
+        # Agregamos la fecha a la consulta. Usamos MAX() para que si hay duplicados, tome la fecha más reciente.
         stock_results = db.session.execute(text("""
             SELECT 
                 p.sku, 
                 MAX(p.nombre) AS nombre, 
-                SUM(COALESCE(i.existencia, 0)) AS stock_actual
+                SUM(COALESCE(i.existencia, 0)) AS stock_actual,
+                MAX(i.fecha_actualizacion) AS ultima_actualizacion
             FROM productos p
             LEFT JOIN inventarios i ON p.id = i.id_producto
             GROUP BY p.sku
@@ -32,6 +34,7 @@ def index():
 
     return render_template('inventario/index.html', productos=productos_dropdown, stock_results=stock_results, ubicaciones=ubicaciones)
 
+
 @inventario_bp.route('/guardar', methods=['POST'])
 @login_required
 def guardar_inicial():
@@ -40,21 +43,29 @@ def guardar_inicial():
         producto_id = int(request.form.get('id_producto') or request.form.get('producto_id'))
         cantidad = int(request.form.get('cantidad', 0))
         ubicacion_id = int(request.form.get('id_ubicacion') or 1)
+        
+        # Obtenemos la fecha y hora actual
+        ahora = datetime.now()
 
-        # Validación: Evitar ingresos de 0 o negativos
         if cantidad <= 0:
             flash('⚠️ La cantidad a ingresar debe ser mayor a 0.', 'warning')
             return redirect(url_for('inventario.index'))
 
-        # CORRECCIÓN AQUÍ: Cambiamos 'existencia = :cant' por 'existencia = existencia + :cant'
-        # Esto suma lo nuevo a lo que ya había en la base de datos.
+        # Agregamos fecha_actualizacion al INSERT y al UPDATE
         query = text("""
-            INSERT INTO inventarios (id_producto, id_ubicacion, existencia, apartado) 
-            VALUES (:prod_id, :ubic_id, :cant, 0)
-            ON DUPLICATE KEY UPDATE existencia = existencia + :cant
+            INSERT INTO inventarios (id_producto, id_ubicacion, existencia, apartado, fecha_actualizacion) 
+            VALUES (:prod_id, :ubic_id, :cant, 0, :fecha)
+            ON DUPLICATE KEY UPDATE 
+                existencia = existencia + :cant,
+                fecha_actualizacion = :fecha
         """)
         
-        db.session.execute(query, {'prod_id': producto_id, 'ubic_id': ubicacion_id, 'cant': cantidad})
+        db.session.execute(query, {
+            'prod_id': producto_id, 
+            'ubic_id': ubicacion_id, 
+            'cant': cantidad,
+            'fecha': ahora
+        })
         db.session.commit()
         
         flash(f'✅ Se ingresaron {cantidad} unidades correctamente al inventario.', 'success')
