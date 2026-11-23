@@ -14,7 +14,7 @@ def index():
         ubicaciones = Ubicacion.query.all() if hasattr(Ubicacion, 'query') else []
         
         # 1. Traemos todos los productos activos
-        productos_db = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+        productos_db = Producto.query.filter_by(activo=True).order_by(Producto.sku).all()
         
         # 2. Traemos todo el inventario
         inventarios_db = db.session.execute(text("SELECT id_producto, existencia, fecha_actualizacion FROM inventarios")).fetchall()
