@@ -127,19 +127,29 @@ def guardar_inicial():
 def historial():
     """Muestra la tabla con todos los movimientos."""
     try:
-        # Usamos 'ubicacion' en singular porque así se llama la tabla en tu base de datos
+        # Forzamos a la sesión a cerrar cualquier transacción pendiente
+        db.session.commit() 
+        
+        # Hacemos la consulta
         historial_db = db.session.execute(text("""
-            SELECT h.*, p.sku, p.nombre AS producto_nombre, u.nombre AS ubicacion_nombre
+            SELECT h.id, h.cantidad, h.stock_anterior, h.stock_nuevo, h.fecha_movimiento, h.tipo_movimiento,
+                   p.sku, p.nombre AS producto_nombre, 
+                   u.nombre AS ubicacion_nombre
             FROM historial_inventario h
-            JOIN productos p ON h.id_producto = p.id
-            JOIN ubicacion u ON h.id_ubicacion = u.id
+            LEFT JOIN productos p ON h.id_producto = p.id
+            LEFT JOIN ubicacion u ON h.id_ubicacion = u.id
             ORDER BY h.fecha_movimiento DESC
         """)).fetchall()
         
-        historial_resultados = [dict(row._mapping) for row in historial_db]
+        # Convertimos a lista de diccionarios para que el HTML lo lea bien
+        historial_resultados = []
+        for row in historial_db:
+            historial_resultados.append(dict(row._mapping))
 
     except Exception as e:
         historial_resultados = []
+        # Imprimimos el error en los logs para saber si algo falla
+        print("❌ ERROR AL LEER HISTORIAL:", str(e))
         flash(f"Error al cargar historial: {str(e)}", "danger")
 
     return render_template('inventario/historial.html', historial=historial_resultados)
