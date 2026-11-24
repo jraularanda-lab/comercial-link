@@ -72,7 +72,7 @@ def guardar_inicial():
             flash('⚠️ La cantidad a ingresar debe ser mayor a 0.', 'warning')
             return redirect(url_for('inventario.index'))
 
-        # 1. Obtener el stock actual ANTES de sumar
+        # 1. Obtener el stock actual
         stock_actual_query = db.session.execute(text("""
             SELECT COALESCE(existencia, 0) FROM inventarios 
             WHERE id_producto = :prod AND id_ubicacion = :ubic
@@ -81,7 +81,7 @@ def guardar_inicial():
         stock_anterior = stock_actual_query if stock_actual_query else 0
         stock_nuevo = stock_anterior + cantidad
 
-        # 2. Insertar o Actualizar el inventario
+        # 2. Insertar o Actualizar el inventario principal
         query_inventario = text("""
             INSERT INTO inventarios (id_producto, id_ubicacion, existencia, apartado, fecha_actualizacion) 
             VALUES (:prod_id, :ubic_id, :cant, 0, :fecha)
@@ -92,6 +92,9 @@ def guardar_inicial():
         db.session.execute(query_inventario, {
             'prod_id': producto_id, 'ubic_id': ubicacion_id, 'cant': cantidad, 'fecha': ahora
         })
+        
+        # Guardamos el inventario primero para evitar bloqueos
+        db.session.commit()
 
         # 3. Guardar el historial del movimiento
         query_historial = text("""
@@ -107,17 +110,18 @@ def guardar_inicial():
             'nuevo': stock_nuevo, 
             'fecha': ahora
         })
-
+        
         db.session.commit()
+
         flash(f'✅ Se ingresaron {cantidad} unidades correctamente y se guardó en el historial.', 'success')
 
     except Exception as e:
         db.session.rollback()
-        print("❌ ERROR EN INVENTARIO:", str(e))
-        flash(f'Error al guardar inventario: {str(e)}', "danger")
+        # Este print te dirá exactamente qué está fallando en los logs de Render
+        print("❌ ERROR EN INVENTARIO AL GUARDAR:", str(e)) 
+        flash(f'Error al guardar inventario: {str(e)}', 'danger')
 
     return redirect(url_for('inventario.index'))
-
 
 @inventario_bp.route('/historial')
 @login_required
