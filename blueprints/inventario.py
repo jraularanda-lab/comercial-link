@@ -124,11 +124,12 @@ def guardar_inicial():
 def historial():
     """Muestra la tabla con todos los movimientos."""
     try:
+        # CORRECCIÓN AQUÍ: Cambiamos 'ubicaciones' por 'ubicacion'
         historial_db = db.session.execute(text("""
             SELECT h.*, p.sku, p.nombre AS producto_nombre, u.nombre AS ubicacion_nombre
             FROM historial_inventario h
             JOIN productos p ON h.id_producto = p.id
-            JOIN ubicaciones u ON h.id_ubicacion = u.id
+            JOIN ubicacion u ON h.id_ubicacion = u.id
             ORDER BY h.fecha_movimiento DESC
         """)).fetchall()
         
