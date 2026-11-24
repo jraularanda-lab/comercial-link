@@ -19,7 +19,7 @@
                             <select class="form-select" id="id_producto" name="id_producto" required>
                                 <option value="">-- Seleccionar Producto --</option>
                                 {% for p in productos %}
-                                    <!-- Quitamos el default(0) ya que Python ya nos entrega el dato exacto -->
+                                    <!-- Mostramos el stock real que viene desde Python -->
                                     <option value="{{ p.id }}">{{ p.sku }} - {{ p.nombre }} (Stock: {{ p.stock_actual }})</option>
                                 {% endfor %}
                             </select>
@@ -43,6 +43,11 @@
                         <button type="submit" class="btn btn-success w-100">
                             <i class="fas fa-plus-circle me-1"></i> Sumar al Stock
                         </button>
+                        
+                        <!-- Botón para ir al Historial -->
+                        <a href="{{ url_for('inventario.historial') }}" class="btn btn-outline-dark w-100 mt-2">
+                            <i class="fas fa-history me-1"></i> Ver Historial Completo
+                        </a>
                     </form>
                 </div>
             </div>
@@ -62,7 +67,7 @@
                                     <th>SKU</th>
                                     <th>Producto</th>
                                     <th class="text-center">Stock Actual</th>
-                                    <th class="text-center">Último Ingreso</th> <!-- Nueva Columna -->
+                                    <th class="text-center">Último Ingreso</th>
                                     <th class="text-center">Estado</th>
                                 </tr>
                             </thead>
@@ -77,7 +82,6 @@
                                         </span>
                                     </td>
                                     <td class="text-center text-muted">
-                                        <!-- Mostramos la fecha formateada, si no hay fecha mostramos un guion -->
                                         {% if row.ultima_actualizacion %}
                                             {{ row.ultima_actualizacion.strftime('%d/%m/%Y %H:%M') }}
                                         {% else %}

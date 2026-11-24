@@ -101,3 +101,87 @@ def guardar_inicial():
         flash(f'Error al guardar inventario: {str(e)}', 'danger')
 
     return redirect(url_for('inventario.index'))
+
+@inventario_bp.route('/guardar', methods=['POST'])
+@login_required
+def guardar_inicial():
+    """Agrega inventario y guarda el historial del movimiento."""
+    try:
+        producto_id = int(request.form.get('id_producto') or request.form.get('producto_id'))
+        cantidad = int(request.form.get('cantidad', 0))
+        ubicacion_id = int(request.form.get('id_ubicacion') or 1)
+        ahora = datetime.now()
+
+        if cantidad <= 0:
+            flash('⚠️ La cantidad a ingresar debe ser mayor a 0.', 'warning')
+            return redirect(url_for('inventario.index'))
+
+        # 1. Obtener el stock actual ANTES de sumar (para el historial)
+        stock_actual_query = db.session.execute(text("""
+            SELECT COALESCE(existencia, 0) FROM inventarios 
+            WHERE id_producto = :prod AND id_ubicacion = :ubic
+        """), {'prod': producto_id, 'ubic': ubicacion_id}).scalar()
+        
+        stock_anterior = stock_actual_query if stock_actual_query else 0
+        stock_nuevo = stock_anterior + cantidad
+
+        # 2. Insertar o Actualizar el inventario (Tu código actual)
+        query_inventario = text("""
+            INSERT INTO inventarios (id_producto, id_ubicacion, existencia, apartado, fecha_actualizacion) 
+            VALUES (:prod_id, :ubic_id, :cant, 0, :fecha)
+            ON DUPLICATE KEY UPDATE 
+                existencia = existencia + :cant,
+                fecha_actualizacion = :fecha
+        """)
+        db.session.execute(query_inventario, {
+            'prod_id': producto_id, 'ubic_id': ubicacion_id, 'cant': cantidad, 'fecha': ahora
+        })
+
+        # 3. Guardar el historial del movimiento
+        query_historial = text("""
+            INSERT INTO historial_inventario 
+            (id_producto, id_ubicacion, tipo_movimiento, cantidad, stock_anterior, stock_nuevo, fecha_movimiento) 
+            VALUES (:prod_id, :ubic_id, 'INGRESO', :cant, :ant, :nuevo, :fecha)
+        """)
+        db.session.execute(query_historial, {
+            'prod_id': producto_id, 
+            'ubic_id': ubicacion_id, 
+            'cant': cantidad, 
+            'ant': stock_anterior, 
+            'nuevo': stock_nuevo, 
+            'fecha': ahora
+        })
+
+        db.session.commit()
+        flash(f'✅ Se ingresaron {cantidad} unidades correctamente y se guardó en el historial.', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        print("❌ ERROR EN INVENTARIO:", str(e))
+        flash(f'Error al guardar inventario: {str(e)}', "danger")
+
+    return redirect(url_for('inventario.index'))
+
+
+@inventario_bp.route('/historial')
+@login_required
+def historial():
+    """Muestra la tabla con todos los movimientos."""
+    try:
+        # Consulta que une el historial con el nombre del producto y el almacén
+        historial_db = db.session.execute(text("""
+            SELECT h.*, p.sku, p.nombre AS producto_nombre, u.nombre AS ubicacion_nombre
+            FROM historial_inventario h
+            JOIN productos p ON h.id_producto = p.id
+            JOIN ubicaciones u ON h.id_ubicacion = u.id
+            ORDER BY h.fecha_movimiento DESC
+        """)).fetchall()
+        
+        # Convertimos a lista de diccionarios para que Jinja lo lea fácil
+        historial_resultados = [dict(row._mapping) for row in historial_db]
+
+    except Exception as e:
+        historial_resultados = []
+        flash(f"Error al cargar historial: {str(e)}", "danger")
+
+    return render_template('inventario/historial.html', historial=historial_resultados)
