@@ -72,13 +72,13 @@ def guardar_inicial():
             flash('⚠️ La cantidad a ingresar debe ser mayor a 0.', 'warning')
             return redirect(url_for('inventario.index'))
 
-        # 1. Obtener el stock actual
+        # 1. Obtener el stock actual ANTES de sumar
         stock_actual_query = db.session.execute(text("""
             SELECT COALESCE(existencia, 0) FROM inventarios 
             WHERE id_producto = :prod AND id_ubicacion = :ubic
         """), {'prod': producto_id, 'ubic': ubicacion_id}).scalar()
         
-        stock_anterior = stock_actual_query if stock_actual_query else 0
+        stock_anterior = int(stock_actual_query) if stock_actual_query else 0
         stock_nuevo = stock_anterior + cantidad
 
         # 2. Insertar o Actualizar el inventario principal
@@ -93,9 +93,6 @@ def guardar_inicial():
             'prod_id': producto_id, 'ubic_id': ubicacion_id, 'cant': cantidad, 'fecha': ahora
         })
         
-        # Guardamos el inventario primero para evitar bloqueos
-        db.session.commit()
-
         # 3. Guardar el historial del movimiento
         query_historial = text("""
             INSERT INTO historial_inventario 
@@ -111,24 +108,26 @@ def guardar_inicial():
             'fecha': ahora
         })
         
+        # Hacemos un solo commit para ambas operaciones (Inventario e Historial)
         db.session.commit()
-
+        
         flash(f'✅ Se ingresaron {cantidad} unidades correctamente y se guardó en el historial.', 'success')
 
     except Exception as e:
         db.session.rollback()
         # Este print te dirá exactamente qué está fallando en los logs de Render
-        print("❌ ERROR EN INVENTARIO AL GUARDAR:", str(e)) 
+        print("❌ ERROR CRÍTICO EN INVENTARIO:", str(e)) 
         flash(f'Error al guardar inventario: {str(e)}', 'danger')
 
     return redirect(url_for('inventario.index'))
+
 
 @inventario_bp.route('/historial')
 @login_required
 def historial():
     """Muestra la tabla con todos los movimientos."""
     try:
-        # CORRECCIÓN AQUÍ: Cambiamos 'ubicaciones' por 'ubicacion'
+        # Usamos 'ubicacion' en singular porque así se llama la tabla en tu base de datos
         historial_db = db.session.execute(text("""
             SELECT h.*, p.sku, p.nombre AS producto_nombre, u.nombre AS ubicacion_nombre
             FROM historial_inventario h
