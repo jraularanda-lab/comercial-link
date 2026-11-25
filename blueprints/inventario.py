@@ -82,6 +82,7 @@ def guardar_inicial():
         stock_nuevo = stock_anterior + cantidad
 
         # 2. Insertar o Actualizar el inventario principal
+        # NOTA: Esto funcionará perfectamente siempre y cuando hayas ejecutado el ALTER TABLE en Navicat
         query_inventario = text("""
             INSERT INTO inventarios (id_producto, id_ubicacion, existencia, apartado, fecha_actualizacion) 
             VALUES (:prod_id, :ubic_id, :cant, 0, :fecha)

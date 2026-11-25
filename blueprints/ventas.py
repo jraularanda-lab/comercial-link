@@ -11,7 +11,7 @@ from openpyxl.utils import get_column_letter
 
 from extensions import db
 from models import Venta, VentaDetalle, Producto, Inventario, Cliente
-
+from sqlalchemy import text  # Importante para consultas directas
 
 ventas_bp = Blueprint('ventas', __name__, url_prefix='/ventas')
 
@@ -251,9 +251,36 @@ def nueva():
         return redirect(url_for('ventas.recibo', id_venta=nueva_venta.id))
 
     clientes = Cliente.query.all()
-    productos_stock = db.session.query(Producto, Inventario.existencia)\
-        .join(Inventario, Producto.id == Inventario.id_producto)\
-        .filter(Inventario.id_ubicacion == 1, Producto.activo == 1).all()
+    
+    # --- CORRECCIÓN AQUÍ: Agrupamos por SKU para evitar duplicados y sumamos stock ---
+    query_productos = text("""
+        SELECT 
+            MIN(p.id) as id, 
+            p.sku, 
+            MAX(p.nombre) as nombre, 
+            MAX(p.precio_venta) as precio_venta,
+            SUM(COALESCE(i.existencia, 0)) as stock_total
+        FROM productos p
+        LEFT JOIN inventarios i ON p.id = i.id_producto AND i.id_ubicacion = 1
+        WHERE p.activo = 1
+        GROUP BY p.sku
+        ORDER BY p.sku
+    """)
+    resultados = db.session.execute(query_productos).fetchall()
+    
+    # Creamos una lista de tuplas (objeto_simulado, stock) para no romper el HTML
+    class ProdTemp:
+        def __init__(self, id, sku, nombre, precio_venta):
+            self.id = id
+            self.sku = sku
+            self.nombre = nombre
+            self.precio_venta = precio_venta
+
+    productos_stock = []
+    for r in resultados:
+        p_temp = ProdTemp(r.id, r.sku, r.nombre, r.precio_venta)
+        productos_stock.append((p_temp, r.stock_total))
+    # --------------------------------------------------------------------------------
 
     fecha_hoy = datetime.now().strftime('%Y-%m-%d')
     return render_template('ventas/nueva.html', clientes=clientes, productos=productos_stock, fecha_hoy=fecha_hoy)
@@ -334,9 +361,35 @@ def editar(id):
         return redirect(url_for('ventas.recibo', id_venta=venta.id))
 
     clientes = Cliente.query.all()
-    productos_stock = db.session.query(Producto, Inventario.existencia)\
-        .join(Inventario, Producto.id == Inventario.id_producto)\
-        .filter(Inventario.id_ubicacion == 1, Producto.activo == 1).all()
+    
+    # --- CORRECCIÓN AQUÍ: Misma lógica para editar ---
+    query_productos = text("""
+        SELECT 
+            MIN(p.id) as id, 
+            p.sku, 
+            MAX(p.nombre) as nombre, 
+            MAX(p.precio_venta) as precio_venta,
+            SUM(COALESCE(i.existencia, 0)) as stock_total
+        FROM productos p
+        LEFT JOIN inventarios i ON p.id = i.id_producto AND i.id_ubicacion = 1
+        WHERE p.activo = 1
+        GROUP BY p.sku
+        ORDER BY p.sku
+    """)
+    resultados = db.session.execute(query_productos).fetchall()
+    
+    class ProdTemp:
+        def __init__(self, id, sku, nombre, precio_venta):
+            self.id = id
+            self.sku = sku
+            self.nombre = nombre
+            self.precio_venta = precio_venta
+
+    productos_stock = []
+    for r in resultados:
+        p_temp = ProdTemp(r.id, r.sku, r.nombre, r.precio_venta)
+        productos_stock.append((p_temp, r.stock_total))
+    # -------------------------------------------------
 
     detalles = VentaDetalle.query.options(db.joinedload(VentaDetalle.producto)).filter_by(id_venta=venta.id).all()
 
