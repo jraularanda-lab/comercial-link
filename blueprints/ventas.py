@@ -569,13 +569,38 @@ def reporte_mensual_csv():
     )
 
 
-# =====================================================================
-# EXPORTACIÓN: EXCEL
+# # =====================================================================
+# EXPORTACIÓN: EXCEL (CON INVENTARIO E INGRESOS)
 # =====================================================================
 @ventas_bp.route('/reporte-mensual/exportar/excel')
 def reporte_mensual_excel():
     filtro_mes = request.args.get('mes', '')
     _, totales = _construir_reporte(filtro_mes)
+
+    # --- NUEVO: Obtener inventario y movimientos para el Excel ---
+    query_inventario = text("""
+        SELECT p.sku, p.nombre, SUM(i.existencia) as stock_total
+        FROM productos p LEFT JOIN inventarios i ON p.id = i.id_producto
+        WHERE p.activo = 1 GROUP BY p.sku, p.nombre ORDER BY p.nombre
+    """)
+    inventario_actual = db.session.execute(query_inventario).fetchall()
+
+    filtro_fecha_sql = ""
+    params = {}
+    if filtro_mes:
+        try:
+            anio, mes = filtro_mes.split('-')
+            filtro_fecha_sql = "WHERE YEAR(h.fecha_movimiento) = :anio AND MONTH(h.fecha_movimiento) = :mes"
+            params = {'anio': int(anio), 'mes': int(mes)}
+        except: pass
+
+    query_historial = text(f"""
+        SELECT h.fecha_movimiento, p.sku, p.nombre, h.cantidad, h.stock_anterior, h.stock_nuevo
+        FROM historial_inventario h JOIN productos p ON h.id_producto = p.id
+        {filtro_fecha_sql} ORDER BY h.fecha_movimiento DESC
+    """)
+    ingresos_inventario = db.session.execute(query_historial, params).fetchall()
+    # -----------------------------------------------------------
 
     wb = Workbook()
 
@@ -594,9 +619,9 @@ def reporte_mensual_excel():
     right = Alignment(horizontal='right', vertical='center')
     money_format = '"$"#,##0.00'
 
+    # --- HOJA 1: RESUMEN ---
     ws_resumen = wb.active
     ws_resumen.title = "Resumen"
-
     ws_resumen.merge_cells('A1:D1')
     ws_resumen['A1'] = f"Reporte Mensual de Ventas — {filtro_mes or 'Todos los periodos'}"
     ws_resumen['A1'].font = titulo_font
@@ -618,18 +643,12 @@ def reporte_mensual_excel():
         ws_resumen[f'B{idx}'].fill = total_fill
         if is_money:
             ws_resumen[f'B{idx}'].number_format = money_format
-
     ws_resumen.column_dimensions['A'].width = 22
     ws_resumen.column_dimensions['B'].width = 18
 
-    ws = wb.create_sheet("Detalle")
-
-    headers = [
-        'Periodo', 'Folio', 'Fecha', 'Cliente', 'Canal', 'Estatus', 'Facturada',
-        'SKU', 'Producto', 'Cantidad', 'P. Unit.', 'Costo Unit.',
-        'Subtotal', 'Ganancia', 'Total Ticket'
-    ]
-
+    # --- HOJA 2: VENTAS (DETALLE) ---
+    ws = wb.create_sheet("Ventas (Detalle)")
+    headers = ['Periodo', 'Folio', 'Fecha', 'Cliente', 'Canal', 'Estatus', 'Facturada', 'SKU', 'Producto', 'Cantidad', 'P. Unit.', 'Costo Unit.', 'Subtotal', 'Ganancia', 'Total Ticket']
     for col, h in enumerate(headers, 1):
         cell = ws.cell(row=1, column=col, value=h)
         cell.font = header_font
@@ -643,13 +662,7 @@ def reporte_mensual_excel():
         for t in tkts:
             fecha_str = t['fecha'].strftime('%Y-%m-%d') if t['fecha'] else ''
             for d in t['detalles']:
-                datos = [
-                    periodo, t['folio'], fecha_str, t['cliente'], t['canal'], t['estatus'],
-                    'SÍ' if t['facturada'] else 'NO',
-                    d['sku'], d['nombre'], d['cantidad'],
-                    d['precio_unitario'], d['costo_unitario'],
-                    d['subtotal'], d['ganancia_linea'], t['total']
-                ]
+                datos = [periodo, t['folio'], fecha_str, t['cliente'], t['canal'], t['estatus'], 'SÍ' if t['facturada'] else 'NO', d['sku'], d['nombre'], d['cantidad'], d['precio_unitario'], d['costo_unitario'], d['subtotal'], d['ganancia_linea'], t['total']]
                 for col, val in enumerate(datos, 1):
                     cell = ws.cell(row=fila, column=col, value=val)
                     cell.border = border
@@ -659,9 +672,7 @@ def reporte_mensual_excel():
                     elif col == 10:
                         cell.alignment = center
                 fila += 1
-
     ws.freeze_panes = "A2"
-
     for col_idx, header in enumerate(headers, 1):
         max_len = len(str(header))
         for row_idx in range(2, fila):
@@ -670,40 +681,50 @@ def reporte_mensual_excel():
                 max_len = max(max_len, len(str(val)))
         ws.column_dimensions[get_column_letter(col_idx)].width = min(max_len + 3, 40)
 
-    ws_per = wb.create_sheet("Por Periodo")
-    headers_per = ['Periodo', 'Tickets', 'Ingresos', 'Ganancia']
-
-    for col, h in enumerate(headers_per, 1):
-        cell = ws_per.cell(row=1, column=col, value=h)
+    # --- HOJA 3: INVENTARIO ACTUAL ---
+    ws_inv = wb.create_sheet("Inventario Actual")
+    headers_inv = ['SKU', 'Producto', 'Stock Total']
+    for col, h in enumerate(headers_inv, 1):
+        cell = ws_inv.cell(row=1, column=col, value=h)
         cell.font = header_font
         cell.fill = header_fill
         cell.alignment = center
         cell.border = border
-
     fila = 2
-    for periodo in sorted(totales['periodos'].keys(), reverse=True):
-        tkts = totales['periodos'][periodo]
-        ingresos = sum(t['total'] for t in tkts)
-        ganancia = sum(t['ganancia'] for t in tkts)
-
-        datos = [periodo, len(tkts), ingresos, ganancia]
+    for item in inventario_actual:
+        datos = [item.sku, item.nombre, item.stock_total]
         for col, val in enumerate(datos, 1):
-            cell = ws_per.cell(row=fila, column=col, value=val)
+            cell = ws_inv.cell(row=fila, column=col, value=val)
             cell.border = border
-            if col >= 3:
-                cell.number_format = money_format
-                cell.alignment = right
-            elif col == 2:
-                cell.alignment = center
+            if col == 3: cell.alignment = center
         fila += 1
+    for col_idx, header in enumerate(headers_inv, 1):
+        ws_inv.column_dimensions[get_column_letter(col_idx)].width = max(len(header) + 5, 25)
 
-    for col_idx, header in enumerate(headers_per, 1):
-        ws_per.column_dimensions[get_column_letter(col_idx)].width = max(len(header) + 4, 15)
+    # --- HOJA 4: INGRESOS A INVENTARIO ---
+    ws_ing = wb.create_sheet("Ingresos a Inventario")
+    headers_ing = ['Fecha y Hora', 'SKU', 'Producto', 'Cant. Ingresada', 'Stock Anterior', 'Stock Nuevo']
+    for col, h in enumerate(headers_ing, 1):
+        cell = ws_ing.cell(row=1, column=col, value=h)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center
+        cell.border = border
+    fila = 2
+    for ing in ingresos_inventario:
+        datos = [ing.fecha_movimiento.strftime('%d/%m/%Y %H:%M'), ing.sku, ing.nombre, ing.cantidad, ing.stock_anterior, ing.stock_nuevo]
+        for col, val in enumerate(datos, 1):
+            cell = ws_ing.cell(row=fila, column=col, value=val)
+            cell.border = border
+            if col in (4, 5, 6): cell.alignment = center
+            elif col == 1: cell.alignment = center
+        fila += 1
+    for col_idx, header in enumerate(headers_ing, 1):
+        ws_ing.column_dimensions[get_column_letter(col_idx)].width = max(len(header) + 5, 25)
 
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)
-
     nombre = f"reporte_mensual_{filtro_mes or 'todos'}.xlsx"
 
     return send_file(
