@@ -11,7 +11,7 @@ from openpyxl.utils import get_column_letter
 
 from extensions import db
 from models import Venta, VentaDetalle, Producto, Inventario, Cliente
-from sqlalchemy import text  # Importante para consultas directas
+from sqlalchemy import text  # <-- IMPORTANTE: Asegúrate de tener esta línea
 
 ventas_bp = Blueprint('ventas', __name__, url_prefix='/ventas')
 
@@ -252,7 +252,7 @@ def nueva():
 
     clientes = Cliente.query.all()
     
-    # --- CORRECCIÓN AQUÍ: Agrupamos por SKU para evitar duplicados y sumamos stock ---
+    # --- Agrupamos por SKU para evitar duplicados y sumamos stock ---
     query_productos = text("""
         SELECT 
             MIN(p.id) as id, 
@@ -268,7 +268,6 @@ def nueva():
     """)
     resultados = db.session.execute(query_productos).fetchall()
     
-    # Creamos una lista de tuplas (objeto_simulado, stock) para no romper el HTML
     class ProdTemp:
         def __init__(self, id, sku, nombre, precio_venta):
             self.id = id
@@ -280,7 +279,6 @@ def nueva():
     for r in resultados:
         p_temp = ProdTemp(r.id, r.sku, r.nombre, r.precio_venta)
         productos_stock.append((p_temp, r.stock_total))
-    # --------------------------------------------------------------------------------
 
     fecha_hoy = datetime.now().strftime('%Y-%m-%d')
     return render_template('ventas/nueva.html', clientes=clientes, productos=productos_stock, fecha_hoy=fecha_hoy)
@@ -362,7 +360,7 @@ def editar(id):
 
     clientes = Cliente.query.all()
     
-    # --- CORRECCIÓN AQUÍ: Misma lógica para editar ---
+    # --- Agrupamos por SKU para evitar duplicados ---
     query_productos = text("""
         SELECT 
             MIN(p.id) as id, 
@@ -389,7 +387,6 @@ def editar(id):
     for r in resultados:
         p_temp = ProdTemp(r.id, r.sku, r.nombre, r.precio_venta)
         productos_stock.append((p_temp, r.stock_total))
-    # -------------------------------------------------
 
     detalles = VentaDetalle.query.options(db.joinedload(VentaDetalle.producto)).filter_by(id_venta=venta.id).all()
 
@@ -436,7 +433,7 @@ def recibo(id_venta):
 
 
 # =====================================================================
-# ✅ NUEVA RUTA: Registrar Devolución
+# ✅ RUTA: Registrar Devolución
 # =====================================================================
 @ventas_bp.route('/devolucion/<int:id_venta>', methods=['POST'])
 def registrar_devolucion(id_venta):
@@ -446,7 +443,6 @@ def registrar_devolucion(id_venta):
         flash('Esta venta ya fue marcada como devuelta anteriormente.', 'warning')
         return redirect(url_for('ventas.recibo', id_venta=venta.id))
 
-    # ✅ NUEVO: Capturamos el motivo del formulario
     motivo = request.form.get('motivo_devolucion', 'Sin motivo especificado')
 
     try:
@@ -458,7 +454,7 @@ def registrar_devolucion(id_venta):
 
         venta.devuelta = True
         venta.estatus = 'DEVUELTA'
-        venta.motivo_devolucion = motivo  # ✅ NUEVO
+        venta.motivo_devolucion = motivo
         
         db.session.commit()
         flash('✅ Devolución registrada. El inventario ha sido reintegrado.', 'success')
@@ -471,12 +467,43 @@ def registrar_devolucion(id_venta):
 
 
 # =====================================================================
-# REPORTE MENSUAL (vista HTML)
+# REPORTE MENSUAL (vista HTML + Inventario + Ingresos)
 # =====================================================================
 @ventas_bp.route('/reporte-mensual')
 def reporte_mensual():
     filtro_mes = request.args.get('mes', '')
     _, totales = _construir_reporte(filtro_mes)
+
+    # --- NUEVO: Obtener el inventario actual ---
+    query_inventario = text("""
+        SELECT p.sku, p.nombre, SUM(i.existencia) as stock_total
+        FROM productos p
+        LEFT JOIN inventarios i ON p.id = i.id_producto
+        WHERE p.activo = 1
+        GROUP BY p.sku, p.nombre
+        ORDER BY p.nombre
+    """)
+    inventario_actual = db.session.execute(query_inventario).fetchall()
+
+    # --- NUEVO: Obtener los ingresos de inventario (historial) ---
+    filtro_fecha_sql = ""
+    params = {}
+    if filtro_mes:
+        try:
+            anio, mes = filtro_mes.split('-')
+            filtro_fecha_sql = "WHERE YEAR(h.fecha_movimiento) = :anio AND MONTH(h.fecha_movimiento) = :mes"
+            params = {'anio': int(anio), 'mes': int(mes)}
+        except:
+            pass
+
+    query_historial = text(f"""
+        SELECT h.fecha_movimiento, p.sku, p.nombre, h.cantidad, h.stock_anterior, h.stock_nuevo
+        FROM historial_inventario h
+        JOIN productos p ON h.id_producto = p.id
+        {filtro_fecha_sql}
+        ORDER BY h.fecha_movimiento DESC
+    """)
+    ingresos_inventario = db.session.execute(query_historial, params).fetchall()
 
     return render_template(
         'ventas/reporte_mensual.html',
@@ -485,6 +512,8 @@ def reporte_mensual():
         total_ingresos=totales['total_ingresos'],
         total_ganancia=totales['total_ganancia'],
         total_tickets=totales['total_tickets'],
+        inventario_actual=inventario_actual,
+        ingresos_inventario=ingresos_inventario
     )
 
 
