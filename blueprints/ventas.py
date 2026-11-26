@@ -735,7 +735,7 @@ def reporte_mensual_excel():
     )
 
 # =====================================================================
-# NUEVO REPORTE: ESTILO EXCEL (VENTAS, INGRESOS Y STOCK) - CORREGIDO
+# NUEVO REPORTE: ESTILO EXCEL (VENTAS, INGRESOS Y STOCK) - CON FILTRO DE DEVOLUCIONES
 # =====================================================================
 @ventas_bp.route('/reporte-inventario')
 def reporte_inventario():
@@ -750,7 +750,7 @@ def reporte_inventario():
             params = {'anio': int(anio), 'mes': int(mes)}
         except: pass
 
-    # Consulta Corregida: Calculamos el stock y las ventas por separado usando Subconsultas
+    # CORRECCIÓN: Agregamos el filtro para que NO cuente ventas devueltas
     query_reporte = text(f"""
         SELECT 
             p.sku, 
@@ -760,15 +760,15 @@ def reporte_inventario():
             COALESCE(stock.stock_actual, 0) AS stock_actual
         FROM productos p
         LEFT JOIN (
-            -- Subconsulta solo para ventas
             SELECT vd.id_producto, SUM(vd.cantidad) as cantidad_vendida, SUM(vd.cantidad * vd.precio_unitario) as total_ingreso
             FROM venta_detalles vd
             JOIN ventas v ON vd.id_venta = v.id
-            WHERE 1=1 {filtro_fecha_ventas}
+            WHERE 1=1 {filtro_fecha_ventas} 
+              AND (v.devuelta = 0 OR v.devuelta IS NULL) -- Excluimos devoluciones
+              AND (v.estatus != 'DEVUELTA' OR v.estatus IS NULL) -- Excluimos por estatus también
             GROUP BY vd.id_producto
         ) ventas ON p.id = ventas.id_producto
         LEFT JOIN (
-            -- Subconsulta solo para inventario
             SELECT id_producto, SUM(existencia) as stock_actual
             FROM inventarios
             GROUP BY id_producto
@@ -794,7 +794,7 @@ def reporte_inventario_excel():
             params = {'anio': int(anio), 'mes': int(mes)}
         except: pass
 
-    # Usamos exactamente la misma consulta corregida para el Excel
+    # Misma corrección para el Excel
     query_reporte = text(f"""
         SELECT 
             p.sku, 
@@ -808,6 +808,8 @@ def reporte_inventario_excel():
             FROM venta_detalles vd
             JOIN ventas v ON vd.id_venta = v.id
             WHERE 1=1 {filtro_fecha_ventas}
+              AND (v.devuelta = 0 OR v.devuelta IS NULL)
+              AND (v.estatus != 'DEVUELTA' OR v.estatus IS NULL)
             GROUP BY vd.id_producto
         ) ventas ON p.id = ventas.id_producto
         LEFT JOIN (
