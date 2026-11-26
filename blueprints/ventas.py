@@ -733,3 +733,124 @@ def reporte_mensual_excel():
         as_attachment=True,
         download_name=nombre
     )
+
+# =====================================================================
+# NUEVO REPORTE: ESTILO EXCEL (VENTAS, INGRESOS Y STOCK)
+# =====================================================================
+@ventas_bp.route('/reporte-inventario')
+def reporte_inventario():
+    filtro_mes = request.args.get('mes', '')
+    
+    filtro_fecha_sql = ""
+    params = {}
+    if filtro_mes:
+        try:
+            anio, mes = filtro_mes.split('-')
+            filtro_fecha_sql = "AND YEAR(v.fecha) = :anio AND MONTH(v.fecha) = :mes"
+            params = {'anio': int(anio), 'mes': int(mes)}
+        except: pass
+
+    query_reporte = text(f"""
+        SELECT 
+            p.sku, 
+            p.nombre, 
+            COALESCE(SUM(vd.cantidad), 0) AS cantidad_vendida,
+            COALESCE(SUM(vd.cantidad * vd.precio_unitario), 0) AS total_ingreso,
+            COALESCE(SUM(i.existencia), 0) AS stock_actual
+        FROM productos p
+        LEFT JOIN venta_detalles vd ON p.id = vd.id_producto
+        LEFT JOIN ventas v ON vd.id_venta = v.id {filtro_fecha_sql}
+        LEFT JOIN inventarios i ON p.id = i.id_producto
+        WHERE p.activo = 1
+        GROUP BY p.sku, p.nombre
+        ORDER BY p.sku
+    """)
+    reporte_agrupado = db.session.execute(query_reporte, params).fetchall()
+
+    return render_template('ventas/reporte_inventario.html', reporte_agrupado=reporte_agrupado, filtro_mes=filtro_mes)
+
+
+@ventas_bp.route('/reporte-inventario/exportar/excel')
+def reporte_inventario_excel():
+    filtro_mes = request.args.get('mes', '')
+    
+    filtro_fecha_sql = ""
+    params = {}
+    if filtro_mes:
+        try:
+            anio, mes = filtro_mes.split('-')
+            filtro_fecha_sql = "AND YEAR(v.fecha) = :anio AND MONTH(v.fecha) = :mes"
+            params = {'anio': int(anio), 'mes': int(mes)}
+        except: pass
+
+    query_reporte = text(f"""
+        SELECT 
+            p.sku, 
+            p.nombre, 
+            COALESCE(SUM(vd.cantidad), 0) AS cantidad_vendida,
+            COALESCE(SUM(vd.cantidad * vd.precio_unitario), 0) AS total_ingreso,
+            COALESCE(SUM(i.existencia), 0) AS stock_actual
+        FROM productos p
+        LEFT JOIN venta_detalles vd ON p.id = vd.id_producto
+        LEFT JOIN ventas v ON vd.id_venta = v.id {filtro_fecha_sql}
+        LEFT JOIN inventarios i ON p.id = i.id_producto
+        WHERE p.activo = 1
+        GROUP BY p.sku, p.nombre
+        ORDER BY p.sku
+    """)
+    reporte_agrupado = db.session.execute(query_reporte, params).fetchall()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Reporte Inventario"
+
+    titulo_font = Font(bold=True, size=14, color="FFFFFF")
+    titulo_fill = PatternFill("solid", fgColor="4F46E5")
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill("solid", fgColor="0F172A")
+    border = Border(left=Side(style='thin', color='E5E7EB'), right=Side(style='thin', color='E5E7EB'), top=Side(style='thin', color='E5E7EB'), bottom=Side(style='thin', color='E5E7EB'))
+    center = Alignment(horizontal='center', vertical='center')
+    right = Alignment(horizontal='right', vertical='center')
+    money_format = '"$"#,##0.00'
+
+    ws.merge_cells('A1:E1')
+    ws['A1'] = f"LISTA DE PRECIOS LINKE - {filtro_mes or 'TODOS LOS MESES'}"
+    ws['A1'].font = titulo_font
+    ws['A1'].fill = titulo_fill
+    ws['A1'].alignment = center
+    ws.row_dimensions[1].height = 28
+
+    headers = ['MODELO', 'DESCRIPCION', 'CANTIDAD VENDIDOS', 'INGRESO MES', 'INVENTARIO ACTUAL']
+    for col, h in enumerate(headers, 1):
+        cell = ws.cell(row=3, column=col, value=h)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center
+        cell.border = border
+    ws.row_dimensions[3].height = 22
+
+    fila = 4
+    for item in reporte_agrupado:
+        datos = [item.sku, item.nombre, item.cantidad_vendida, item.total_ingreso, item.stock_actual]
+        for col, val in enumerate(datos, 1):
+            cell = ws.cell(row=fila, column=col, value=val)
+            cell.border = border
+            if col == 3: cell.alignment = center
+            elif col == 4: 
+                cell.number_format = money_format
+                cell.alignment = right
+            elif col == 5: cell.alignment = center
+        fila += 1
+
+    ws.column_dimensions['A'].width = 15
+    ws.column_dimensions['B'].width = 45
+    ws.column_dimensions['C'].width = 20
+    ws.column_dimensions['D'].width = 18
+    ws.column_dimensions['E'].width = 20
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    nombre = f"reporte_inventario_{filtro_mes or 'todos'}.xlsx"
+
+    return send_file(output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', as_attachment=True, download_name=nombre)
