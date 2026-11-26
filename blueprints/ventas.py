@@ -735,34 +735,45 @@ def reporte_mensual_excel():
     )
 
 # =====================================================================
-# NUEVO REPORTE: ESTILO EXCEL (VENTAS, INGRESOS Y STOCK)
+# NUEVO REPORTE: ESTILO EXCEL (VENTAS, INGRESOS Y STOCK) - CORREGIDO
 # =====================================================================
 @ventas_bp.route('/reporte-inventario')
 def reporte_inventario():
     filtro_mes = request.args.get('mes', '')
     
-    filtro_fecha_sql = ""
+    filtro_fecha_ventas = ""
     params = {}
     if filtro_mes:
         try:
             anio, mes = filtro_mes.split('-')
-            filtro_fecha_sql = "AND YEAR(v.fecha) = :anio AND MONTH(v.fecha) = :mes"
+            filtro_fecha_ventas = "AND YEAR(v.fecha) = :anio AND MONTH(v.fecha) = :mes"
             params = {'anio': int(anio), 'mes': int(mes)}
         except: pass
 
+    # Consulta Corregida: Calculamos el stock y las ventas por separado usando Subconsultas
     query_reporte = text(f"""
         SELECT 
             p.sku, 
             p.nombre, 
-            COALESCE(SUM(vd.cantidad), 0) AS cantidad_vendida,
-            COALESCE(SUM(vd.cantidad * vd.precio_unitario), 0) AS total_ingreso,
-            COALESCE(SUM(i.existencia), 0) AS stock_actual
+            COALESCE(ventas.cantidad_vendida, 0) AS cantidad_vendida,
+            COALESCE(ventas.total_ingreso, 0) AS total_ingreso,
+            COALESCE(stock.stock_actual, 0) AS stock_actual
         FROM productos p
-        LEFT JOIN venta_detalles vd ON p.id = vd.id_producto
-        LEFT JOIN ventas v ON vd.id_venta = v.id {filtro_fecha_sql}
-        LEFT JOIN inventarios i ON p.id = i.id_producto
+        LEFT JOIN (
+            -- Subconsulta solo para ventas
+            SELECT vd.id_producto, SUM(vd.cantidad) as cantidad_vendida, SUM(vd.cantidad * vd.precio_unitario) as total_ingreso
+            FROM venta_detalles vd
+            JOIN ventas v ON vd.id_venta = v.id
+            WHERE 1=1 {filtro_fecha_ventas}
+            GROUP BY vd.id_producto
+        ) ventas ON p.id = ventas.id_producto
+        LEFT JOIN (
+            -- Subconsulta solo para inventario
+            SELECT id_producto, SUM(existencia) as stock_actual
+            FROM inventarios
+            GROUP BY id_producto
+        ) stock ON p.id = stock.id_producto
         WHERE p.activo = 1
-        GROUP BY p.sku, p.nombre
         ORDER BY p.sku
     """)
     reporte_agrupado = db.session.execute(query_reporte, params).fetchall()
@@ -774,28 +785,37 @@ def reporte_inventario():
 def reporte_inventario_excel():
     filtro_mes = request.args.get('mes', '')
     
-    filtro_fecha_sql = ""
+    filtro_fecha_ventas = ""
     params = {}
     if filtro_mes:
         try:
             anio, mes = filtro_mes.split('-')
-            filtro_fecha_sql = "AND YEAR(v.fecha) = :anio AND MONTH(v.fecha) = :mes"
+            filtro_fecha_ventas = "AND YEAR(v.fecha) = :anio AND MONTH(v.fecha) = :mes"
             params = {'anio': int(anio), 'mes': int(mes)}
         except: pass
 
+    # Usamos exactamente la misma consulta corregida para el Excel
     query_reporte = text(f"""
         SELECT 
             p.sku, 
             p.nombre, 
-            COALESCE(SUM(vd.cantidad), 0) AS cantidad_vendida,
-            COALESCE(SUM(vd.cantidad * vd.precio_unitario), 0) AS total_ingreso,
-            COALESCE(SUM(i.existencia), 0) AS stock_actual
+            COALESCE(ventas.cantidad_vendida, 0) AS cantidad_vendida,
+            COALESCE(ventas.total_ingreso, 0) AS total_ingreso,
+            COALESCE(stock.stock_actual, 0) AS stock_actual
         FROM productos p
-        LEFT JOIN venta_detalles vd ON p.id = vd.id_producto
-        LEFT JOIN ventas v ON vd.id_venta = v.id {filtro_fecha_sql}
-        LEFT JOIN inventarios i ON p.id = i.id_producto
+        LEFT JOIN (
+            SELECT vd.id_producto, SUM(vd.cantidad) as cantidad_vendida, SUM(vd.cantidad * vd.precio_unitario) as total_ingreso
+            FROM venta_detalles vd
+            JOIN ventas v ON vd.id_venta = v.id
+            WHERE 1=1 {filtro_fecha_ventas}
+            GROUP BY vd.id_producto
+        ) ventas ON p.id = ventas.id_producto
+        LEFT JOIN (
+            SELECT id_producto, SUM(existencia) as stock_actual
+            FROM inventarios
+            GROUP BY id_producto
+        ) stock ON p.id = stock.id_producto
         WHERE p.activo = 1
-        GROUP BY p.sku, p.nombre
         ORDER BY p.sku
     """)
     reporte_agrupado = db.session.execute(query_reporte, params).fetchall()
