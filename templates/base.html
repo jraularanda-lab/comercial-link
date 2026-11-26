@@ -53,6 +53,11 @@
     <a href="{{ url_for('reportes.index') }}" class="cl-link {{ 'active' if request.endpoint and request.endpoint.startswith('reportes.') }}">
       <i class="bi bi-graph-up-arrow"></i> Reportes
     </a>
+    <!-- NUEVO ENLACE AGREGADO AQUÍ -->
+    <a href="{{ url_for('ventas.reporte_inventario') }}" class="cl-link {{ 'active' if request.endpoint == 'ventas.reporte_inventario' }}">
+      <i class="bi bi-table"></i> Reporte Inventario
+    </a>
+    <!-- FIN DEL NUEVO ENLACE -->
     <a href="#" class="cl-link">
       <i class="bi bi-gear"></i> Configuración
     </a>
