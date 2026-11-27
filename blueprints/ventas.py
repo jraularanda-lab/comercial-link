@@ -225,7 +225,7 @@ def nueva():
             subtotal=total_venta,
             descuento=0.0,
             estatus='COMPLETADA',
-            facturada=facturada
+            facturada=facturada,
             metodo_pago=metodo_pago  # <-- Agregado
         )
         db.session.add(nueva_venta)
@@ -299,6 +299,7 @@ def editar(id):
         fecha_str = request.form.get('fecha')
         
         venta.facturada = request.form.get('facturada') == '1'
+        venta.metodo_pago = request.form.get('metodo_pago', 'Efectivo')
 
         if fecha_str:
             try:
