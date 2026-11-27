@@ -7,7 +7,7 @@
         <div>
             <button onclick="window.print()" class="btn btn-primary me-2">🖨️ Imprimir Recibo</button>
             
-            <!-- ✅ NUEVO FORMULARIO DE DEVOLUCIÓN -->
+            <!-- ✅ FORMULARIO DE DEVOLUCIÓN -->
             {% if not venta.devuelta %}
             <form action="{{ url_for('ventas.registrar_devolucion', id_venta=venta.id) }}" method="POST" class="d-inline-flex align-items-center gap-2 bg-light p-2 rounded border border-danger" onsubmit="return confirm('¿Estás seguro de registrar la devolución? El inventario será reintegrado.');">
                 <select name="motivo_devolucion" class="form-select form-select-sm border-danger" style="width: 220px;" required>
@@ -22,20 +22,18 @@
                 <button type="submit" class="btn btn-danger btn-sm text-nowrap">🔄 Registrar Devolución</button>
             </form>
             {% else %}
-            <!-- ✅ ETIQUETA QUE MUESTRA EL MOTIVO -->
             <div class="alert alert-danger d-inline-block py-1 px-3 mb-0">
                 <strong>VENTA DEVUELTA</strong> <br>
                 <small>Motivo: {{ venta.motivo_devolucion or 'No especificado' }}</small>
             </div>
             {% endif %}
-            <!-- FIN BOTÓN -->
 
             <a href="{{ url_for('ventas.nueva') }}" class="btn btn-outline-primary me-2">+ Nueva Venta</a>
             <a href="{{ url_for('ventas.index') }}" class="btn btn-secondary">Regresar al Listado</a>
         </div>
     </div>
 
-    <!-- Contenedor Estilo Recibo Físico Confortara -->
+    <!-- Contenedor Estilo Recibo Físico -->
     <div class="card p-4 shadow-sm bg-white border-dark mx-auto" id="areaImpresion" style="max-width: 800px; font-family: Arial, sans-serif; color: #000;">
         
         <!-- Encabezado Empresa -->
@@ -48,21 +46,33 @@
             </small>
         </div>
 
-        <!-- ✅ Folio y Estado de Facturación -->
+        <!-- ✅ Folio, Estado Fiscal y Método de Pago -->
         <div class="d-flex justify-content-between align-items-center my-2" style="font-size: 14px;">
             <div>
                 <strong>Folio:</strong> <span class="fw-bold">{{ venta.folio }}</span>
             </div>
-            <div>
-                <strong>Estado Fiscal:</strong>
-                {% if venta.facturada %}
-                    <span class="badge" style="background-color: #28a745; font-size: 12px;">FACTURADA</span>
-                {% else %}
-                    <span class="badge" style="background-color: #6c757d; font-size: 12px;">NO FACTURADA</span>
-                {% endif %}
+            <div class="text-end">
+                <div>
+                    <strong>Estado Fiscal:</strong>
+                    {% if venta.facturada %}
+                        <span class="badge" style="background-color: #28a745; font-size: 12px;">FACTURADA</span>
+                    {% else %}
+                        <span class="badge" style="background-color: #6c757d; font-size: 12px;">NO FACTURADA</span>
+                    {% endif %}
+                </div>
+                <div class="mt-1">
+                    <strong>Método de Pago:</strong> 
+                    <span class="fw-bold">{{ venta.metodo_pago or 'Efectivo' }}</span>
+                    {% if venta.metodo_pago == 'Crédito' %}
+                        {% if venta.pagado %}
+                            <span class="badge bg-success ms-1">PAGADO</span>
+                        {% else %}
+                            <span class="badge bg-danger ms-1">PENDIENTE</span>
+                        {% endif %}
+                    {% endif %}
+                </div>
             </div>
         </div>
-        <!-- Fin Folio y Estado -->
 
         <h4 class="text-center fw-bold my-2" style="letter-spacing: 4px; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 0;">R E C I B O</h4>
 

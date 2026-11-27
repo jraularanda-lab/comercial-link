@@ -44,11 +44,32 @@
 
                         <hr>
                         
-                        <!-- ✅ NUEVO: Checkbox de Facturada para ventas antiguas -->
+                        <!-- ✅ Checkbox de Facturada -->
                         <div class="mb-3 form-check">
                             <input class="form-check-input" type="checkbox" name="facturada" id="facturada" value="1" {% if venta.facturada %}checked{% endif %}>
                             <label class="form-check-label" for="facturada">
                                 ¿Esta venta ya fue facturada?
+                            </label>
+                        </div>
+
+                        <!-- ✅ Método de Pago -->
+                        <div class="mb-3">
+                            <label class="form-label">Método de Pago</label>
+                            <select name="metodo_pago" class="form-select" id="metodoPago" required onchange="toggleCredito()">
+                                <option value="Efectivo" {% if venta.metodo_pago == 'Efectivo' %}selected{% endif %}>Efectivo</option>
+                                <option value="Tarjeta de Crédito" {% if venta.metodo_pago == 'Tarjeta de Crédito' %}selected{% endif %}>Tarjeta de Crédito</option>
+                                <option value="Tarjeta de Débito" {% if venta.metodo_pago == 'Tarjeta de Débito' %}selected{% endif %}>Tarjeta de Débito</option>
+                                <option value="Vauchera ML" {% if venta.metodo_pago == 'Vauchera ML' %}selected{% endif %}>Vauchera ML</option>
+                                <option value="Transferencia" {% if venta.metodo_pago == 'Transferencia' %}selected{% endif %}>Transferencia</option>
+                                <option value="Crédito" {% if venta.metodo_pago == 'Crédito' %}selected{% endif %}>Crédito (A Plazos)</option>
+                            </select>
+                        </div>
+
+                        <!-- ✅ Checkbox de Pagado (solo visible si es Crédito) -->
+                        <div class="mb-3 form-check" id="seccionPagado" style="display: {% if venta.metodo_pago == 'Crédito' %}block{% else %}none{% endif %};">
+                            <input class="form-check-input" type="checkbox" name="pagado" id="pagado" value="1" {% if venta.pagado %}checked{% endif %}>
+                            <label class="form-check-label" for="pagado">
+                                ¿Ya se liquidó el crédito?
                             </label>
                         </div>
                         
@@ -153,6 +174,16 @@ function actualizarSubtotalFila(row) {
     const precio = parseFloat(row.querySelector('.input-precio').value) || 0;
     const subtotal = cant * precio;
     row.querySelector('.subtotal-linea').innerText = `$${subtotal.toFixed(2)}`;
+}
+
+function toggleCredito() {
+    const metodo = document.getElementById('metodoPago').value;
+    const seccion = document.getElementById('seccionPagado');
+    if (metodo === 'Crédito') {
+        seccion.style.display = 'block';
+    } else {
+        seccion.style.display = 'none';
+    }
 }
 </script>
 {% endblock %}

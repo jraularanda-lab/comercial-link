@@ -182,6 +182,11 @@ def nueva():
         
         facturada = request.form.get('facturada') == '1'
         metodo_pago = request.form.get('metodo_pago', 'Efectivo')
+        
+        # ✅ Lógica correcta para el estado de pago (Crédito)
+        pagado = True
+        if metodo_pago == 'Crédito':
+            pagado = request.form.get('pagado') == '1'
 
         fecha_venta = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else datetime.utcnow().date()
 
@@ -286,7 +291,6 @@ def nueva():
     fecha_hoy = datetime.now().strftime('%Y-%m-%d')
     return render_template('ventas/nueva.html', clientes=clientes, productos=productos_stock, fecha_hoy=fecha_hoy)
 
-
 # =====================================================================
 # VENTAS: Editar
 # =====================================================================
@@ -299,12 +303,16 @@ def editar(id):
         id_cliente = request.form.get('id_cliente')
         fecha_str = request.form.get('fecha')
         
+        # ✅ CAPTURAMOS LOS DATOS DEL FORMULARIO PRIMERO
         venta.facturada = request.form.get('facturada') == '1'
-        venta.metodo_pago = request.form.get('metodo_pago', 'Efectivo')
-        # ✅ NUEVO: Si el método es Crédito, revisamos el checkbox; si no, por defecto está pagado.
+        metodo_pago = request.form.get('metodo_pago', 'Efectivo')
+        venta.metodo_pago = metodo_pago
+        
+        # Lógica de pagado
         pagado = True
         if metodo_pago == 'Crédito':
             pagado = request.form.get('pagado') == '1'
+        venta.pagado = pagado
 
         if fecha_str:
             try:
@@ -317,6 +325,7 @@ def editar(id):
 
         venta.id_cliente = int(id_cliente) if id_cliente else None
 
+        # Reintegramos stock de los productos anteriores y los borramos
         detalles_actuales = VentaDetalle.query.filter_by(id_venta=venta.id).all()
         for det_viejo in detalles_actuales:
             inv = Inventario.query.filter_by(id_producto=det_viejo.id_producto, id_ubicacion=1).first()
@@ -343,6 +352,7 @@ def editar(id):
             producto_db = Producto.query.get(p_id)
             costo_u = producto_db.costo if hasattr(producto_db, 'costo') and producto_db.costo else 0.0
 
+            # ✅ CREAMOS EL DETALLE (SOLO CON SUS PROPIOS DATOS)
             nuevo_detalle = VentaDetalle(
                 id_venta=venta.id,
                 id_producto=p_id,
@@ -353,6 +363,7 @@ def editar(id):
             )
             db.session.add(nuevo_detalle)
 
+            # Descontamos stock nuevo
             inv = Inventario.query.filter_by(id_producto=p_id, id_ubicacion=1).first()
             if inv:
                 inv.existencia -= cant
@@ -366,9 +377,9 @@ def editar(id):
         flash('¡Venta actualizada con éxito!', 'success')
         return redirect(url_for('ventas.recibo', id_venta=venta.id))
 
+    # --- GET: Mostrar formulario ---
     clientes = Cliente.query.all()
     
-    # --- Agrupamos por SKU para evitar duplicados ---
     query_productos = text("""
         SELECT 
             MIN(p.id) as id, 
@@ -399,7 +410,6 @@ def editar(id):
     detalles = VentaDetalle.query.options(db.joinedload(VentaDetalle.producto)).filter_by(id_venta=venta.id).all()
 
     return render_template('ventas/editar.html', venta=venta, clientes=clientes, productos=productos_stock, detalles=detalles)
-
 
 # =====================================================================
 # CLIENTES: Alta rápida vía AJAX
