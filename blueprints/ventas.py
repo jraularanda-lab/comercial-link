@@ -226,7 +226,8 @@ def nueva():
             descuento=0.0,
             estatus='COMPLETADA',
             facturada=facturada,
-            metodo_pago=metodo_pago  # <-- Agregado
+            metodo_pago=metodo_pago
+            pagado=pagado  
         )
         db.session.add(nueva_venta)
         db.session.commit()
@@ -300,6 +301,10 @@ def editar(id):
         
         venta.facturada = request.form.get('facturada') == '1'
         venta.metodo_pago = request.form.get('metodo_pago', 'Efectivo')
+        # ✅ NUEVO: Si el método es Crédito, revisamos el checkbox; si no, por defecto está pagado.
+        pagado = True
+        if metodo_pago == 'Crédito':
+            pagado = request.form.get('pagado') == '1'
 
         if fecha_str:
             try:

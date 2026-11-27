@@ -62,7 +62,7 @@
 
                         <hr>
                         
-                        <!-- ✅ NUEVO: Checkbox de Facturada -->
+                        <!-- ✅ Checkbox de Facturada -->
                         <div class="mb-3 form-check">
                             <input class="form-check-input" type="checkbox" name="facturada" id="facturada" value="1">
                             <label class="form-check-label" for="facturada">
@@ -70,16 +70,25 @@
                             </label>
                         </div>
 
-                        <!-- ✅ NUEVO: Método de Pago -->
+                        <!-- ✅ Método de Pago -->
                         <div class="mb-3">
                             <label class="form-label">Método de Pago</label>
-                            <select name="metodo_pago" class="form-select" required>
+                            <select name="metodo_pago" class="form-select" id="metodoPago" required onchange="toggleCredito()">
                                 <option value="Efectivo" selected>Efectivo</option>
                                 <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
                                 <option value="Tarjeta de Débito">Tarjeta de Débito</option>
                                 <option value="Vauchera ML">Vauchera ML</option>
                                 <option value="Transferencia">Transferencia</option>
+                                <option value="Crédito">Crédito (A Plazos)</option>
                             </select>
+                        </div>
+
+                        <!-- ✅ Checkbox de Pagado (solo visible si es Crédito) -->
+                        <div class="mb-3 form-check" id="seccionPagado" style="display: none;">
+                            <input class="form-check-input" type="checkbox" name="pagado" id="pagado" value="1" checked>
+                            <label class="form-check-label" for="pagado">
+                                ¿Ya se liquidó el crédito?
+                            </label>
                         </div>
                         
                         <div class="d-grid mt-3">
@@ -140,6 +149,16 @@ function toggleNuevoCliente() {
     if (seccion.style.display === 'none' || seccion.style.display === '') {
         seccion.style.display = 'block';
         document.getElementById('nuevo_nombre').focus();
+    } else {
+        seccion.style.display = 'none';
+    }
+}
+
+function toggleCredito() {
+    const metodo = document.getElementById('metodoPago').value;
+    const seccion = document.getElementById('seccionPagado');
+    if (metodo === 'Crédito') {
+        seccion.style.display = 'block';
     } else {
         seccion.style.display = 'none';
     }
