@@ -226,7 +226,7 @@ def nueva():
             descuento=0.0,
             estatus='COMPLETADA',
             facturada=facturada,
-            metodo_pago=metodo_pago
+            metodo_pago=metodo_pago,
             pagado=pagado  
         )
         db.session.add(nueva_venta)
