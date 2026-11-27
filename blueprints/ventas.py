@@ -181,6 +181,7 @@ def nueva():
         fecha_str = request.form.get('fecha')
         
         facturada = request.form.get('facturada') == '1'
+        metodo_pago = request.form.get('metodo_pago', 'Efectivo')
 
         fecha_venta = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else datetime.utcnow().date()
 
@@ -225,6 +226,7 @@ def nueva():
             descuento=0.0,
             estatus='COMPLETADA',
             facturada=facturada
+            metodo_pago=metodo_pago  # <-- Agregado
         )
         db.session.add(nueva_venta)
         db.session.commit()

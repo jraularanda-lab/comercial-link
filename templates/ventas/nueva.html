@@ -69,6 +69,18 @@
                                 ¿Esta venta se facturó?
                             </label>
                         </div>
+
+                        <!-- ✅ NUEVO: Método de Pago -->
+                        <div class="mb-3">
+                            <label class="form-label">Método de Pago</label>
+                            <select name="metodo_pago" class="form-select" required>
+                                <option value="Efectivo" selected>Efectivo</option>
+                                <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
+                                <option value="Tarjeta de Débito">Tarjeta de Débito</option>
+                                <option value="Vauchera ML">Vauchera ML</option>
+                                <option value="Transferencia">Transferencia</option>
+                            </select>
+                        </div>
                         
                         <div class="d-grid mt-3">
                             <button type="submit" class="btn btn-primary btn-lg">Completar Venta</button>

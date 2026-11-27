@@ -158,6 +158,7 @@ class Inventario(db.Model):
     id_ubicacion = db.Column(db.BigInteger, nullable=True, default=1)
     existencia = db.Column(db.Integer, nullable=False, default=0)
     apartado = db.Column(db.Integer, nullable=False, default=0)
+    fecha_actualizacion = db.Column(db.DateTime, nullable=True) # Agregado por si acaso
 
 
 class Venta(db.Model):
@@ -174,7 +175,8 @@ class Venta(db.Model):
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
     facturada = db.Column(db.Boolean, default=False)
     devuelta = db.Column(db.Boolean, default=False)
-    motivo_devolucion = db.Column(db.String(255), nullable=True) # ✅ NUEVO CAMPO
+    motivo_devolucion = db.Column(db.String(255), nullable=True)
+    metodo_pago = db.Column(db.String(50), default='Efectivo') # ✅ NUEVO CAMPO
 
     detalles = db.relationship(
         'VentaDetalle',
